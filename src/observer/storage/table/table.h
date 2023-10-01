@@ -15,8 +15,8 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <functional>
+#include "storage/field/field_meta.h"
 #include "storage/table/table_meta.h"
-
 struct RID;
 class Record;
 class DiskBufferPool;
@@ -80,6 +80,7 @@ public:
    */
   RC insert_record(Record &record);
   RC delete_record(const Record &record);
+  RC update_record(const Record &record,Record &newRecord);
   RC visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor);
   RC get_record(const RID &rid, Record &record);
 

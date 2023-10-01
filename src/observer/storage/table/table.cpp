@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include <algorithm>
 
 #include "common/defs.h"
+#include "storage/record/record.h"
 #include "storage/table/table.h"
 #include "storage/table/table_meta.h"
 #include "common/log/log.h"
@@ -486,6 +487,33 @@ RC Table::delete_record(const Record &record)
            name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
   }
   rc = record_handler_->delete_record(&record.rid());
+  return rc;
+}
+
+RC Table::update_record(const Record &record,Record &newRecord)
+{
+  //目前思路先删后插入
+  RC rc = RC::SUCCESS;
+  for (Index *index : indexes_) {
+    rc = index->delete_entry(record.data(), &record.rid());
+    ASSERT(RC::SUCCESS == rc, 
+           "failed to delete entry from index. table name=%s, index name=%s, rid=%s, rc=%s",
+           name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
+  }
+  rc = record_handler_->delete_record(&record.rid());
+  if(rc!=RC::SUCCESS)
+    return rc;
+  rc=insert_record(newRecord);
+  if(rc!=RC::SUCCESS)
+    return rc;
+  // for (Index *index : indexes_) {
+  //   rc = index->delete_entry(record.data(), &record.rid());
+  //   ASSERT(RC::SUCCESS == rc, 
+  //          "failed to delete entry from index. table name=%s, index name=%s, rid=%s, rc=%s",
+  //          name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
+  // }
+  // rc = record_handler_->delete_record(&record.rid());
+  // return rc;
   return rc;
 }
 

@@ -60,6 +60,10 @@ RC VacuousTrx::delete_record(Table *table, Record &record)
 {
   return table->delete_record(record);
 }
+RC VacuousTrx::update_record(Table *table, Record &record,Record &newRecord)
+{
+  return table->update_record(record,newRecord);
+}
 
 RC VacuousTrx::visit_record(Table *table, Record &record, bool readonly)
 {
