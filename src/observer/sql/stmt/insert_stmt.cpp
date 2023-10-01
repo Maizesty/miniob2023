@@ -14,8 +14,11 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/stmt/insert_stmt.h"
 #include "common/log/log.h"
+#include "sql/parser/value.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
+#include "utlis/date.h"
+#include <cstdint>
 
 InsertStmt::InsertStmt(Table *table, const Value *values, int value_amount)
     : table_(table), values_(values), value_amount_(value_amount)
@@ -38,7 +41,8 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
   }
 
   // check the fields number
-  const Value *values = inserts.values.data();
+  // const Value *values = inserts.values.data();
+  Value *values = const_cast<Value*>(inserts.values.data());
   const int value_num = static_cast<int>(inserts.values.size());
   const TableMeta &table_meta = table->table_meta();
   const int field_num = table_meta.field_num() - table_meta.sys_field_num();
@@ -53,14 +57,29 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
     const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
     const AttrType field_type = field_meta->type();
     const AttrType value_type = values[i].attr_type();
-    if (field_type != value_type) {  // TODO try to convert the value type to field type
-      LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
-          table_name, field_meta->name(), field_type, value_type);
-      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    if (field_type != value_type) { 
+       // TODO try to convert the value type to field type
+        if(!(field_type == AttrType::DATES && value_type == AttrType::CHARS)){
+                LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
+              table_name, field_meta->name(), field_type, value_type);
+            return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }else{
+        int32_t date = -1;
+        RC rc = string_to_date(values[i].data(), date);
+        if(rc != RC::SUCCESS){
+          LOG_WARN("field type mismatch. can not convert string %s to date, table=%s, field=%s, field type=%d, value_type=%d",
+          values[i].data(),table_name, field_meta->name(), field_type, value_type);
+          return rc;
+        }
+        Value v;
+        v.set_date(date);
+        values[i]=v;
+      }
+
     }
   }
 
   // everything alright
-  stmt = new InsertStmt(table, values, value_num);
+  stmt = new InsertStmt(table, static_cast<const Value*>(values), value_num);
   return RC::SUCCESS;
 }

@@ -5,7 +5,7 @@
 
 **以直接执行命令的方式启动服务端程序**
 ```bash
-./bin/observer -f ../etc/observer.ini -P cli
+./bin/observer -f ../etc/conf.ini -P cli
 ```
 这会以直接执行命令的方式启动服务端程序，可以直接输入命令，不需要客户端。所有的请求都会以单线程的方式运行，配置项中的线程数不再有实际意义。
 

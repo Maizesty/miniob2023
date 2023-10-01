@@ -15,9 +15,12 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
+#include "sql/parser/value.h"
 #include "sql/stmt/filter_stmt.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
+#include "utlis/date.h"
+#include <cstdint>
 
 FilterStmt::~FilterStmt()
 {
@@ -90,6 +93,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
 
   filter_unit = new FilterUnit;
 
+
   if (condition.left_is_attr) {
     Table *table = nullptr;
     const FieldMeta *field = nullptr;
@@ -127,5 +131,57 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
   filter_unit->set_comp(comp);
 
   // 检查两个类型是否能够比较
+  AttrType left_type,right_type;
+  if(filter_unit->left().is_attr){
+    left_type=filter_unit->left().field.attr_type();
+  }else{
+    left_type=filter_unit->left().value.attr_type();
+  }
+  if(filter_unit->right().is_attr){
+    right_type=filter_unit->right().field.attr_type();
+  }else{
+    right_type=filter_unit->right().value.attr_type();
+  }
+  if(left_type==AttrType::UNDEFINED||right_type==AttrType::UNDEFINED){
+    LOG_WARN("invalid compare value : %d,%d", left_type,right_type);
+    return RC::INVALID_ARGUMENT;
+  }
+  if(left_type==AttrType::DATES && right_type==AttrType::CHARS){
+    if (!condition.right_is_attr){
+    FilterObj filter_obj;
+    Value value;
+    int32_t date=-1;
+    rc = string_to_date(condition.right_value.data(), date);
+    if(rc!=RC::SUCCESS){
+      LOG_ERROR("can not convert right value : %s to date type", condition.right_value.data());
+      return rc;
+    }
+    value.set_date(date);
+    filter_obj.init_value(value);
+    filter_unit->set_right(filter_obj);
+    }
+    return rc;
+  }
+  if(left_type==AttrType::CHARS&&right_type==AttrType::DATES){
+    if (!condition.left_is_attr){
+    FilterObj filter_obj;
+    Value value;
+    int32_t date=-1;
+    rc = string_to_date(condition.left_value.data(), date);
+    if(rc!=RC::SUCCESS){
+      LOG_ERROR("can not convert left value : %s to date type", condition.left_value.data());
+      return rc;
+    }
+    value.set_date(date);
+    filter_obj.init_value(value);
+    filter_unit->set_left(filter_obj);
+    }
+    return rc;
+  }
+  //没有考虑两边都是日期形式字符串这种
+  if((left_type!=right_type)&&!((left_type==INTS&&right_type==FLOATS)||(left_type==FLOATS&&right_type==INTS))){
+    LOG_ERROR("invalid compare value : %d,%d", left_type,right_type);
+    return RC::INVALID_ARGUMENT;
+  }
   return rc;
 }

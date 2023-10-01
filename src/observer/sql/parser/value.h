@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <cstdint>
 #include <string>
 
 /**
@@ -27,6 +28,7 @@ enum AttrType
   INTS,           ///< 整数类型(4字节)
   FLOATS,         ///< 浮点数类型(4字节)
   BOOLEANS,       ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
+  DATES,
 };
 
 const char *attr_type_to_string(AttrType type);
@@ -68,7 +70,7 @@ public:
   void set_boolean(bool val);
   void set_string(const char *s, int len = 0);
   void set_value(const Value &value);
-
+  void set_date(int32_t date);
   std::string to_string() const;
 
   int compare(const Value &other) const;
@@ -93,6 +95,7 @@ public:
   float get_float() const;
   std::string get_string() const;
   bool get_boolean() const;
+  int32_t get_int32() const;
 
 private:
   AttrType attr_type_ = UNDEFINED;
@@ -102,6 +105,7 @@ private:
     int int_value_;
     float float_value_;
     bool bool_value_;
+    int32_t date_value_;
   } num_value_;
   std::string str_value_;
 };

@@ -12,6 +12,7 @@ See the Mulan PSL v2 for more details. */
 // Created by wangyunlai on 2021/6/11.
 //
 
+#include <cstdint>
 #include <string.h>
 #include <algorithm>
 #include "common/defs.h"
@@ -23,6 +24,13 @@ int compare_int(void *arg1, void *arg2)
 {
   int v1 = *(int *)arg1;
   int v2 = *(int *)arg2;
+  return v1 - v2;
+}
+
+int compare_date(void *arg1, void *arg2)
+{
+  int32_t v1 = *(int32_t *)arg1;
+  int32_t v2 = *(int32_t *)arg2;
   return v1 - v2;
 }
 
