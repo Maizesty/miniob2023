@@ -137,7 +137,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   } else {
     right_value.set_value(right_.value);
   }
-  if(comp_op_ == LIKE_WITH){
+  if(comp_op_ == LIKE_WITH || comp_op_ == NOT_LIKE_WITH){
     return left_value.compare_like(right_value);
   }
   int cmp_result = left_value.compare(right_value);

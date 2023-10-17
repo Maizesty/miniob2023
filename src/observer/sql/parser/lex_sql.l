@@ -116,6 +116,7 @@ DATA                                    RETURN_TOKEN(DATA);
 INFILE                                  RETURN_TOKEN(INFILE);
 EXPLAIN                                 RETURN_TOKEN(EXPLAIN);
 LIKE                                    RETURN_TOKEN(LIKE_COMP);
+NOT                                     RETURN_TOKEN(NOT_COMP);
 {ID}                                    yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("                                     RETURN_TOKEN(LBRACE);
 ")"                                     RETURN_TOKEN(RBRACE);
