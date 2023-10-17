@@ -14,12 +14,14 @@ See the Mulan PSL v2 for more details. */
 
 #include <cstdint>
 #include <sstream>
+#include <regex>
 #include "sql/parser/value.h"
 #include "storage/field/field.h"
 #include "common/log/log.h"
 #include "common/lang/comparator.h"
 #include "common/lang/string.h"
 #include "utlis/date.h"
+
 
 const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "booleans", "dates"};
 
@@ -30,6 +32,29 @@ const char *attr_type_to_string(AttrType type)
   }
   return "unknown";
 }
+int isMatch(const char *s, const char *p) {
+    // 将输入字符串s1转换为std::string
+    std::string s1(s);
+
+    // 构建正则表达式模式
+    std::string regexPattern;
+    for (size_t i = 0; i < strlen(p); i++) {
+        if (p[i] == '%') {
+            regexPattern += "([^']*)"; 
+        } else if (p[i] == '_') {
+            regexPattern += "(.)"; 
+        } else {
+            regexPattern += p[i]; 
+        }
+    }
+
+    regexPattern = "^" + regexPattern + "$";
+
+    std::regex pattern(regexPattern);
+    return std::regex_match(s1, pattern);
+}
+
+
 AttrType attr_type_from_string(const char *s)
 {
   for (unsigned int i = 0; i < sizeof(ATTR_TYPE_NAME) / sizeof(ATTR_TYPE_NAME[0]); i++) {
@@ -210,6 +235,16 @@ int Value::compare(const Value &other) const
   }
   LOG_WARN("not supported");
   return -1;  // TODO return rc?
+}
+
+int Value::compare_like(const Value &other) const{
+  if(this->attr_type_ == other.attr_type_ && this->attr_type_ == CHARS){
+    const char *s1 = this->str_value_.c_str();
+    const char *s2 = other.str_value_.c_str();
+    return isMatch(s1,s2);
+  }
+  LOG_WARN("not supported");
+  return -1;
 }
 
 int Value::get_int() const

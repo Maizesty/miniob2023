@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/expr/expression.h"
 #include "sql/expr/tuple.h"
+#include "sql/parser/parse_defs.h"
 
 using namespace std;
 
@@ -89,8 +90,12 @@ ComparisonExpr::~ComparisonExpr()
 RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &result) const
 {
   RC rc = RC::SUCCESS;
-  int cmp_result = left.compare(right);
   result = false;
+  if(comp_ == LIKE_WITH){
+    result = (1 == left.compare_like(right));
+    return rc;
+  }
+  int cmp_result = left.compare(right);
   switch (comp_) {
     case EQUAL_TO: {
       result = (0 == cmp_result);

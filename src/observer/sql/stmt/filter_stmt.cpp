@@ -178,6 +178,10 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     return rc;
   }
+  if(condition.comp == LIKE_WITH && (left_type != CHARS || right_type != CHARS)){
+    LOG_ERROR("invalid compare value for like : %d,%d", left_type,right_type);
+    return RC::INVALID_ARGUMENT;
+  }
   //没有考虑两边都是日期形式字符串这种
   if((left_type!=right_type)&&!((left_type==INTS&&right_type==FLOATS)||(left_type==FLOATS&&right_type==INTS))){
     LOG_ERROR("invalid compare value : %d,%d", left_type,right_type);
