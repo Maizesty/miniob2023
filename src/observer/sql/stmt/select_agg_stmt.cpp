@@ -1,25 +1,11 @@
-/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-See the Mulan PSL v2 for more details. */
-
-//
-// Created by Wangyunlai on 2022/6/6.
-//
-
-#include "sql/stmt/select_stmt.h"
+#include "sql/stmt/select_agg_stmt.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 
-SelectStmt::~SelectStmt()
+SelectStmt::~SelectAggStmt()
 {
   if (nullptr != filter_stmt_) {
     delete filter_stmt_;
@@ -36,10 +22,8 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
+RC SelectAggStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 {
-
-
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
@@ -147,11 +131,11 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   }
 
   // everything alright
-  SelectStmt *select_stmt = new SelectStmt();
+  SelectAggStmt *select_agg_stmt = new SelectAggStmt();
   // TODO add expression copy
-  select_stmt->tables_.swap(tables);
-  select_stmt->query_fields_.swap(query_fields);
-  select_stmt->filter_stmt_ = filter_stmt;
-  stmt = select_stmt;
+  select_agg_stmt->tables_.swap(tables);
+  select_agg_stmt->query_fields_.swap(query_fields);
+  select_agg_stmt->filter_stmt_ = filter_stmt;
+  stmt = select_agg_stmt;
   return RC::SUCCESS;
 }

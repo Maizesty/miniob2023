@@ -100,6 +100,11 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         NE
         LIKE_COMP
         NOT_COMP
+        MAX_AGG
+        MIN_AGG
+        SUM_AGG
+        COUNT_AGG
+        AVG_AGG
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -107,6 +112,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   ConditionSqlNode *                condition;
   Value *                           value;
   enum CompOp                       comp;
+  enum AggOp                        agg;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -134,6 +140,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <value>               value
 %type <number>              number
 %type <comp>                comp_op
+%type <agg>                 agg_op
 %type <rel_attr>            rel_attr
 %type <attr_infos>          attr_def_list
 %type <attr_info>           attr_def
@@ -462,8 +469,15 @@ select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
+      $$->hasAgg = false;
       if ($2 != nullptr) {
         $$->selection.attributes.swap(*$2);
+        for(int i = 0; i < $$->selection.attributes.size(); i++){
+          if($$->selection.attributes[i].aggOp != NO_AGGOP){
+            $$->hasAgg = true;
+            break;
+          }
+        }
         delete $2;
       }
       if ($5 != nullptr) {
@@ -556,14 +570,36 @@ rel_attr:
     ID {
       $$ = new RelAttrSqlNode;
       $$->attribute_name = $1;
+      $$->aggOP = NO_AGGOP;
       free($1);
     }
     | ID DOT ID {
       $$ = new RelAttrSqlNode;
       $$->relation_name  = $1;
       $$->attribute_name = $3;
+      $$->aggOP = NO_AGGOP;
       free($1);
       free($3);
+    }
+    | agg_op LBRACE '*' RBRACE{
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = "";
+      $$->attribute_name = "*";
+      $$->aggOP = $1;
+    }
+    | agg_op LBRACE ID RBRACE{
+      $$ = new RelAttrSqlNode;
+      $$->attribute_name = $13;
+      $$->aggOP = $3;
+      free($1);
+    }
+    | agg_op LBRACE ID DOT ID RBRACE{
+      $$ = new RelAttrSqlNode;
+      $$->relation_name  = $3;
+      $$->attribute_name = $5;
+      $$->aggOP = $1;
+      free($3);
+      free($5);
     }
     ;
 
@@ -686,6 +722,13 @@ comp_op:
     | NOT_COMP LIKE_COMP { $$ = NOT_LIKE_WITH; }
     | LIKE_COMP { $$ = LIKE_WITH; }
     ;
+agg_op:
+      MAX_AGG { $$ = MAX_AGGOP; }
+    | MIN_AGG { $$ = MIN_AGGOP; }
+    | COUNT_AGG { $$ = COUNT_AGGOP; }
+    | AVG_AGG { $$ = AVG_AGGOP; }
+    | SUM_AGG { $$ = SUM_AGGOP; }
+
 
 load_data_stmt:
     LOAD DATA INFILE SSS INTO TABLE ID 
