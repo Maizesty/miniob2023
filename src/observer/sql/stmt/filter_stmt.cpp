@@ -179,7 +179,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     return rc;
   }
-  if(condition.comp == LIKE_WITH || condition.comp == NOT_LIKE_WITH && (left_type != CHARS || right_type != CHARS)){
+  if((condition.comp == LIKE_WITH || condition.comp == NOT_LIKE_WITH) && (left_type != CHARS || right_type != CHARS)){
     LOG_ERROR("invalid compare value for like : %d,%d", left_type,right_type);
     return RC::INVALID_ARGUMENT;
   }
