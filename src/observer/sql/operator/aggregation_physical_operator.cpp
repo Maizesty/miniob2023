@@ -148,15 +148,15 @@ RC AggregationPhysicalOperator::next()
         {
         case MAX_AGGOP:
           if(isFirst)
-            result_[i].set_int(cell_value);
+            result_[i].set_date(cell_value);
           else
-            result_[i].set_int(tmp > cell_value ? tmp : cell_value);
+            result_[i].set_date(tmp > cell_value ? tmp : cell_value);
           break;
         case MIN_AGGOP:
           if(isFirst)
-            result_[i].set_int(cell_value);
+            result_[i].set_date(cell_value);
           else
-            result_[i].set_int(tmp < cell_value ? tmp : cell_value);
+            result_[i].set_date(tmp < cell_value ? tmp : cell_value);
           break;       
         default:
           break;
