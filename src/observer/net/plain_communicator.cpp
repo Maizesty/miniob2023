@@ -19,6 +19,25 @@ See the Mulan PSL v2 for more details. */
 #include "session/session.h"
 #include "common/io/io.h"
 #include "common/log/log.h"
+#include "sql/parser/parse_defs.h"
+
+const char* AggToStr(AggOp op){
+  switch (op) {
+  case MAX_AGGOP:
+    return "MAX";
+  case MIN_AGGOP:
+    return "MIN";
+  case AVG_AGGOP:
+    return "AVG";
+  case SUM_AGGOP:
+    return "SUM";
+  case COUNT_AGGOP:
+    return "COUNT";
+  default:
+    return "";
+  }
+}
+
 
 PlainCommunicator::PlainCommunicator()
 {
@@ -198,9 +217,16 @@ RC PlainCommunicator::write_result_internal(SessionEvent *event, bool &need_disc
           return rc;
         }
       }
+      if (spec.aggOp() == NO_AGGOP){
+        int len = strlen(alias);
+        rc = writer_->writen(alias, len);
+      }else{
+        const char * agg_name = AggToStr(spec.aggOp());
+        std::string res = std::string(agg_name)+"("+std::string(alias)+")";
+        int len = strlen(res.c_str());
+        rc = writer_->writen(res.c_str(), len);
+      }
 
-      int len = strlen(alias);
-      rc = writer_->writen(alias, len);
       if (OB_FAIL(rc)) {
         LOG_WARN("failed to send data to client. err=%s", strerror(errno));
         sql_result->close();

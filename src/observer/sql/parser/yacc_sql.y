@@ -469,12 +469,12 @@ select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
-      $$->hasAgg = false;
+      $$->selection.hasAgg = false;
       if ($2 != nullptr) {
         $$->selection.attributes.swap(*$2);
         for(int i = 0; i < $$->selection.attributes.size(); i++){
           if($$->selection.attributes[i].aggOp != NO_AGGOP){
-            $$->hasAgg = true;
+            $$->selection.hasAgg = true;
             break;
           }
         }
@@ -553,6 +553,7 @@ select_attr:
       RelAttrSqlNode attr;
       attr.relation_name  = "";
       attr.attribute_name = "*";
+      attr.aggOp = NO_AGGOP;
       $$->emplace_back(attr);
     }
     | rel_attr attr_list {
@@ -570,14 +571,14 @@ rel_attr:
     ID {
       $$ = new RelAttrSqlNode;
       $$->attribute_name = $1;
-      $$->aggOP = NO_AGGOP;
+      $$->aggOp = NO_AGGOP;
       free($1);
     }
     | ID DOT ID {
       $$ = new RelAttrSqlNode;
       $$->relation_name  = $1;
       $$->attribute_name = $3;
-      $$->aggOP = NO_AGGOP;
+      $$->aggOp = NO_AGGOP;
       free($1);
       free($3);
     }
@@ -585,19 +586,19 @@ rel_attr:
       $$ = new RelAttrSqlNode;
       $$->relation_name  = "";
       $$->attribute_name = "*";
-      $$->aggOP = $1;
+      $$->aggOp = $1;
     }
     | agg_op LBRACE ID RBRACE{
       $$ = new RelAttrSqlNode;
-      $$->attribute_name = $13;
-      $$->aggOP = $3;
-      free($1);
+      $$->attribute_name = $3;
+      $$->aggOp = $1;
+      free($3);
     }
     | agg_op LBRACE ID DOT ID RBRACE{
       $$ = new RelAttrSqlNode;
       $$->relation_name  = $3;
       $$->attribute_name = $5;
-      $$->aggOP = $1;
+      $$->aggOp = $1;
       free($3);
       free($5);
     }

@@ -28,12 +28,13 @@ class Expression;
  */
 enum AggOp 
 {
+  NO_AGGOP,
   MAX_AGGOP,    
   MIN_AGGOP,  
   COUNT_AGGOP,   
   AVG_AGGOP,    
-  SUM_AGGOP,  
-  NO_AGGOP
+  SUM_AGGOP 
+ 
 };
 /**
  * @brief 描述一个属性

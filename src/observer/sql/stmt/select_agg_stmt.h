@@ -44,6 +44,10 @@ public:
   {
     return filter_stmt_;
   }
+  const std::vector<AggField> &agg_fields() const
+  {
+    return agg_fields_;
+  }
 
 private:
   std::vector<Field> query_fields_;

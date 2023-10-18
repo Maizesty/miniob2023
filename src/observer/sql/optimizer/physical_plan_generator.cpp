@@ -14,6 +14,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <utility>
 
+#include "sql/operator/aggregation_logical_operator.h"
+#include "sql/operator/aggregation_physical_operator.h"
 #include "sql/operator/logical_operator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/optimizer/physical_plan_generator.h"
@@ -37,6 +39,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/update_physical_operator.h"
 #include "sql/expr/expression.h"
 #include "common/log/log.h"
+#include "storage/field/agg_field.h"
 
 using namespace std;
 
@@ -60,7 +63,9 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
     case LogicalOperatorType::PROJECTION: {
       return create_plan(static_cast<ProjectLogicalOperator &>(logical_operator), oper);
     } break;
-
+    case LogicalOperatorType::AGGREGATION: {
+      return create_plan(static_cast<AggregationLogicalOperator &>(logical_operator), oper);
+    } break;
     case LogicalOperatorType::INSERT: {
       return create_plan(static_cast<InsertLogicalOperator &>(logical_operator), oper);
     } break;
@@ -206,6 +211,36 @@ RC PhysicalPlanGenerator::create_plan(ProjectLogicalOperator &project_oper, uniq
   oper = unique_ptr<PhysicalOperator>(project_operator);
 
   LOG_TRACE("create a project physical operator");
+  return rc;
+}
+
+RC PhysicalPlanGenerator::create_plan(AggregationLogicalOperator &agg_oper, unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = agg_oper.children();
+
+  unique_ptr<PhysicalOperator> child_phy_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc = create(*child_oper, child_phy_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create aggregation logical operator's child physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  AggregationPhysicalOperator *agg_operator = new AggregationPhysicalOperator(agg_oper.agg_fields(),agg_oper.fields());
+  const vector<AggField> &agg_fields = agg_oper.agg_fields();
+
+
+  if (child_phy_oper) {
+    agg_operator->add_child(std::move(child_phy_oper));
+  }
+
+  oper = unique_ptr<PhysicalOperator>(agg_operator);
+
+  LOG_TRACE("create a project agg operator");
   return rc;
 }
 
