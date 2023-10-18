@@ -324,6 +324,9 @@ int32_t Value::get_int32() const
     case BOOLEANS: {
       return int32_t(num_value_.bool_value_);
     } break;
+    case DATES:{
+      return num_value_.date_value_;
+    }break;
     default: {
       LOG_WARN("unknown data type. type=%d", attr_type_);
       return 0;
