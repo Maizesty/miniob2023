@@ -59,9 +59,17 @@ public:
   {
     append_cell(TupleCellSpec(table, field));
   }
+  void append_cell(const char *table, const char *field, AggOp op)
+  {
+    append_cell(TupleCellSpec(table, field,nullptr,op));
+  }
   void append_cell(const char *alias)
   {
     append_cell(TupleCellSpec(alias));
+  }
+  void append_cell(const char *alias, AggOp op)
+  {
+    append_cell(TupleCellSpec(alias,op));
   }
   int cell_num() const
   {

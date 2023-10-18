@@ -22,11 +22,13 @@ See the Mulan PSL v2 for more details. */
 #include "event/storage_event.h"
 #include "event/sql_event.h"
 #include "event/session_event.h"
+#include "sql/stmt/select_agg_stmt.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "storage/default/default_handler.h"
 #include "sql/executor/command_executor.h"
 #include "sql/operator/calc_physical_operator.h"
+#include "storage/field/agg_field.h"
 
 using namespace std;
 using namespace common;
@@ -77,7 +79,23 @@ RC ExecuteStage::handle_request_with_physical_operator(SQLStageEvent *sql_event)
         }
       }
     } break;
-
+    case StmtType::SELECT_AGG :{
+      SelectAggStmt *select_agg_stmt = static_cast<SelectAggStmt *>(stmt);
+      bool with_table_name = select_agg_stmt->tables().size() > 1;
+            for (const AggField &field : select_agg_stmt->agg_fields()) {
+        if (with_table_name) {
+          if(field.is_star())
+            schema.append_cell(field.table_name(), "*",field.aggOp());
+          else
+            schema.append_cell(field.table_name(), field.field_name(),field.aggOp());
+        } else {
+          if(field.is_star())
+            schema.append_cell("*",field.aggOp());
+          else
+            schema.append_cell(field.field_name(),field.aggOp());
+        }
+      }
+    }break;
     case StmtType::CALC: {
       CalcPhysicalOperator *calc_operator = static_cast<CalcPhysicalOperator *>(physical_operator.get());
       for (const unique_ptr<Expression> & expr : calc_operator->expressions()) {

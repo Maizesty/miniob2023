@@ -1,25 +1,12 @@
-/* Copyright (c) 2021 OceanBase and/or its affiliates. All rights reserved.
-miniob is licensed under Mulan PSL v2.
-You can use this software according to the terms and conditions of the Mulan PSL v2.
-You may obtain a copy of Mulan PSL v2 at:
-         http://license.coscl.org.cn/MulanPSL2
-THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND,
-EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT,
-MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
-See the Mulan PSL v2 for more details. */
-
-//
-// Created by Wangyunlai on 2022/6/6.
-//
-
-#include "sql/stmt/select_stmt.h"
+#include "sql/stmt/select_agg_stmt.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/filter_stmt.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/db/db.h"
 #include "storage/table/table.h"
 
-SelectStmt::~SelectStmt()
+SelectAggStmt::~SelectAggStmt()
 {
   if (nullptr != filter_stmt_) {
     delete filter_stmt_;
@@ -36,10 +23,8 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
+RC SelectAggStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 {
-
-
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
@@ -67,6 +52,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 
   // collect query fields in `select` statement
   std::vector<Field> query_fields;
+  std::vector<AggField> agg_fields;
   for (int i = static_cast<int>(select_sql.attributes.size()) - 1; i >= 0; i--) {
     const RelAttrSqlNode &relation_attr = select_sql.attributes[i];
     
@@ -75,7 +61,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
       for (Table *table : tables) {
         wildcard_fields(table, query_fields);
       }
-
+      agg_fields.push_back(AggField(nullptr,nullptr,relation_attr.aggOp,true));
     } else if (!common::is_blank(relation_attr.relation_name.c_str())) {
       const char *table_name = relation_attr.relation_name.c_str();
       const char *field_name = relation_attr.attribute_name.c_str();
@@ -88,6 +74,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
         for (Table *table : tables) {
           wildcard_fields(table, query_fields);
         }
+        agg_fields.push_back(AggField(nullptr,nullptr,relation_attr.aggOp,true));
       } else {
         auto iter = table_map.find(table_name);
         if (iter == table_map.end()) {
@@ -98,6 +85,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
         Table *table = iter->second;
         if (0 == strcmp(field_name, "*")) {
           wildcard_fields(table, query_fields);
+          agg_fields.push_back(AggField(nullptr,nullptr,relation_attr.aggOp,true));
         } else {
           const FieldMeta *field_meta = table->table_meta().field(field_name);
           if (nullptr == field_meta) {
@@ -106,6 +94,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
           }
 
           query_fields.push_back(Field(table, field_meta));
+          agg_fields.push_back(AggField(table,field_meta,relation_attr.aggOp,false));
         }
       }
     } else {
@@ -122,8 +111,18 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
       }
 
       query_fields.push_back(Field(table, field_meta));
+      agg_fields.push_back(AggField(table,field_meta,relation_attr.aggOp,false));
     }
-
+    if(relation_attr.aggOp == NO_AGGOP){
+      LOG_WARN("invalid argument.Can not have scalar col without group by");
+      return RC::INVALID_ARGUMENT;
+    }
+    //TODO 一些聚合函数的规则校验
+    if(0 == strcmp(relation_attr.attribute_name.c_str(), "*") && relation_attr.aggOp != COUNT_AGGOP){
+      LOG_WARN("invalid argument.Can not use this op %d on *",relation_attr.aggOp);
+      return RC::INVALID_ARGUMENT;
+    }
+    
   }
 
   LOG_INFO("got %d tables in from stmt and %d fields in query stmt", tables.size(), query_fields.size());
@@ -147,11 +146,12 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   }
 
   // everything alright
-  SelectStmt *select_stmt = new SelectStmt();
+  SelectAggStmt *select_agg_stmt = new SelectAggStmt();
   // TODO add expression copy
-  select_stmt->tables_.swap(tables);
-  select_stmt->query_fields_.swap(query_fields);
-  select_stmt->filter_stmt_ = filter_stmt;
-  stmt = select_stmt;
+  select_agg_stmt->tables_.swap(tables);
+  select_agg_stmt->query_fields_.swap(query_fields);
+  select_agg_stmt->filter_stmt_ = filter_stmt;
+  select_agg_stmt->agg_fields_.swap(agg_fields);
+  stmt = select_agg_stmt;
   return RC::SUCCESS;
 }

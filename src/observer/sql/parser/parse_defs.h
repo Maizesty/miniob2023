@@ -26,7 +26,16 @@ class Expression;
 /**
  * @defgroup SQLParser SQL Parser 
  */
-
+enum AggOp 
+{
+  NO_AGGOP,
+  MAX_AGGOP,    
+  MIN_AGGOP,  
+  COUNT_AGGOP,   
+  AVG_AGGOP,    
+  SUM_AGGOP 
+ 
+};
 /**
  * @brief 描述一个属性
  * @ingroup SQLParser
@@ -38,6 +47,7 @@ struct RelAttrSqlNode
 {
   std::string relation_name;   ///< relation name (may be NULL) 表名
   std::string attribute_name;  ///< attribute name              属性名
+  AggOp aggOp;
 };
 
 /**
@@ -94,6 +104,7 @@ struct SelectSqlNode
   std::vector<RelAttrSqlNode>     attributes;    ///< attributes in select clause
   std::vector<std::string>        relations;     ///< 查询的表
   std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
+  bool                            hasAgg;
 };
 
 /**

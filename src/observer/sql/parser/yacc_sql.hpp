@@ -91,11 +91,16 @@ extern int yydebug;
     NE = 301,
     LIKE_COMP = 302,
     NOT_COMP = 303,
-    NUMBER = 304,
-    FLOAT = 305,
-    ID = 306,
-    SSS = 307,
-    UMINUS = 308
+    MAX_AGG = 304,
+    MIN_AGG = 305,
+    SUM_AGG = 306,
+    COUNT_AGG = 307,
+    AVG_AGG = 308,
+    NUMBER = 309,
+    FLOAT = 310,
+    ID = 311,
+    SSS = 312,
+    UMINUS = 313
   };
 #endif
 
@@ -104,12 +109,13 @@ extern int yydebug;
 
 union YYSTYPE
 {
-#line 105 "yacc_sql.y" /* yacc.c:1909  */
+#line 110 "yacc_sql.y" /* yacc.c:1909  */
 
   ParsedSqlNode *                   sql_node;
   ConditionSqlNode *                condition;
   Value *                           value;
   enum CompOp                       comp;
+  enum AggOp                        agg;
   RelAttrSqlNode *                  rel_attr;
   std::vector<AttrInfoSqlNode> *    attr_infos;
   AttrInfoSqlNode *                 attr_info;
@@ -124,7 +130,7 @@ union YYSTYPE
   int                               number;
   float                             floats;
 
-#line 128 "yacc_sql.hpp" /* yacc.c:1909  */
+#line 134 "yacc_sql.hpp" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;
