@@ -105,6 +105,7 @@ void Value::set_int(int val)
   attr_type_            = INTS;
   num_value_.int_value_ = val;
   length_               = sizeof(val);
+  isNull_               = false;
 }
 
 void Value::set_date(int32_t val)
@@ -112,6 +113,8 @@ void Value::set_date(int32_t val)
   attr_type_             = DATES;
   num_value_.date_value_ = val;
   length_                = sizeof(val);
+  isNull_               = false;
+
 }
 
 void Value::set_float(float val)
@@ -119,12 +122,16 @@ void Value::set_float(float val)
   attr_type_              = FLOATS;
   num_value_.float_value_ = val;
   length_                 = sizeof(val);
+  isNull_               = false;
+
 }
 void Value::set_boolean(bool val)
 {
   attr_type_             = BOOLEANS;
   num_value_.bool_value_ = val;
   length_                = sizeof(val);
+  isNull_               = false;
+
 }
 void Value::set_string(const char *s, int len /*= 0*/)
 {
@@ -136,6 +143,8 @@ void Value::set_string(const char *s, int len /*= 0*/)
     str_value_.assign(s);
   }
   length_ = str_value_.length();
+  isNull_               = false;
+
 }
 
 void Value::set_value(const Value &value)
@@ -160,6 +169,7 @@ void Value::set_value(const Value &value)
       ASSERT(false, "got an invalid value type");
     } break;
   }
+
 }
 
 const char *Value::data() const
@@ -177,6 +187,8 @@ const char *Value::data() const
 std::string Value::to_string() const
 {
   std::stringstream os;
+  if (isNull_)
+    os << "NULL";
   switch (attr_type_) {
     case INTS: {
       os << num_value_.int_value_;
@@ -202,7 +214,8 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
-  if (this->attr_type_ == other.attr_type_) {
+
+  if (this->attr_type_ == other.attr_type_ && !isNull_) {
     switch (this->attr_type_) {
       case INTS: {
         return common::compare_int((void *)&this->num_value_.int_value_, (void *)&other.num_value_.int_value_);
@@ -238,7 +251,7 @@ int Value::compare(const Value &other) const
 }
 
 int Value::compare_like(const Value &other) const{
-  if(this->attr_type_ == other.attr_type_ && this->attr_type_ == CHARS){
+  if(this->attr_type_ == other.attr_type_ && this->attr_type_ == CHARS &&  !isNull_){
     const char *s1 = this->str_value_.c_str();
     const char *s2 = other.str_value_.c_str();
     return isMatch(s1,s2);
@@ -374,4 +387,12 @@ bool Value::get_boolean() const
     }
   }
   return false;
+}
+
+bool Value::isNull() const{
+  return isNull_;
+}
+
+void Value::set_isNull(bool isNull){
+  isNull_ = isNull;
 }

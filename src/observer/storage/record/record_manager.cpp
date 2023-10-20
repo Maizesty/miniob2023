@@ -142,7 +142,7 @@ RC RecordPageHandler::init_empty_page(DiskBufferPool &buffer_pool, PageNum page_
     LOG_ERROR("Failed to init empty page page_num:record_size %d:%d.", page_num, record_size);
     return ret;
   }
-
+  //初始化页面
   page_header_->record_num          = 0;
   page_header_->record_real_size    = record_size;
   page_header_->record_size         = align8(record_size);

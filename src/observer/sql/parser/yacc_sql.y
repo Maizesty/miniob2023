@@ -105,6 +105,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         SUM_AGG
         COUNT_AGG
         AVG_AGG
+        NULL_T
+        IS
+        NULLABLE
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -335,6 +338,7 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->isNullable = false;
       free($1);
     }
     | ID type
@@ -343,6 +347,45 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = 4;
+      $$->isNullable = false;
+      free($1);
+    }
+    |
+    ID type LBRACE number RBRACE NOT_COMP NULL_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->isNullable = false;
+      free($1);
+    }
+    | ID type NOT_COMP NULL_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->isNullable = false;
+      free($1);
+    }
+    |
+    ID type LBRACE number RBRACE NULLABLE
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->isNullable = true;
+      free($1);
+    }
+    | ID type  NULLABLE
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->isNullable = true;
       free($1);
     }
     ;

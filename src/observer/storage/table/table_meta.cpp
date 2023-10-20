@@ -56,8 +56,8 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
   }
 
   RC rc = RC::SUCCESS;
-
-  int                      field_offset  = 0;
+  // 加了四位为了bitmap
+  int                      field_offset  = 4;
   int                      trx_field_num = 0;
   const vector<FieldMeta> *trx_fields    = TrxKit::instance()->trx_fields();
   if (trx_fields != nullptr) {
@@ -78,7 +78,7 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
   for (int i = 0; i < field_num; i++) {
     const AttrInfoSqlNode &attr_info = attributes[i];
     rc                               = fields_[i + trx_field_num].init(
-        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/);
+        attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/,attr_info.isNullable);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name.c_str());
       return rc;
@@ -87,7 +87,9 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
     field_offset += attr_info.length;
   }
 
-  record_size_ = field_offset;
+
+  //多4位存bitmap
+  record_size_ = field_offset+4;
 
   table_id_ = table_id;
   name_     = name;

@@ -41,13 +41,14 @@ AttrType attr_type_from_string(const char *s);
 class Value 
 {
 public:
-  Value() = default;
+  Value(){
+    this->isNull_ = true;
+  }
 
   Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type)
   {
     this->set_data(data, length);
   }
-
   explicit Value(int val);
   explicit Value(float val);
   explicit Value(bool val);
@@ -71,6 +72,7 @@ public:
   void set_string(const char *s, int len = 0);
   void set_value(const Value &value);
   void set_date(int32_t date);
+  void set_isNull(bool null);
   std::string to_string() const;
 
   int compare(const Value &other) const;
@@ -97,6 +99,7 @@ public:
   std::string get_string() const;
   bool get_boolean() const;
   int32_t get_int32() const;
+  bool isNull() const;
 
 private:
   AttrType attr_type_ = UNDEFINED;
@@ -109,4 +112,5 @@ private:
     int32_t date_value_;
   } num_value_;
   std::string str_value_;
+  bool isNull_ = false;
 };
