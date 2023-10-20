@@ -123,6 +123,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   std::vector<ConditionSqlNode> *   condition_list;
   std::vector<RelAttrSqlNode> *     rel_attr_list;
   std::vector<std::string> *        relation_list;
+  std::vector<UpdateRel> *          update_rel_list;
   char *                            string;
   int                               number;
   float                             floats;
@@ -151,6 +152,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <condition_list>      condition_list
 %type <rel_attr_list>       select_attr
 %type <relation_list>       rel_list
+%type <update_rel_list>     update_rel_list
 %type <rel_attr_list>       attr_list
 %type <expression>          expression
 %type <expression_list>     expression_list
@@ -451,20 +453,50 @@ delete_stmt:    /*  delete 语句的语法解析树*/
     }
     ;
 update_stmt:      /*  update 语句的语法解析树*/
-    UPDATE ID SET ID EQ value where 
+    UPDATE ID SET ID EQ value update_rel_list where 
     {
       $$ = new ParsedSqlNode(SCF_UPDATE);
       $$->update.relation_name = $2;
-      $$->update.attribute_name = $4;
-      $$->update.value = *$6;
-      if ($7 != nullptr) {
-        $$->update.conditions.swap(*$7);
-        delete $7;
+      // $$->update.attribute_name = $4;
+      // $$->update.value = *$6;
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $4;
+      r->value = $6;
+      if($7 != nullptr){
+        $$.update->updateRel_list = $7;
+      }else{
+        $$.update->updateRel_list = new std::vector<UpdateRel>;
+      }
+      $$.update->updateRel_list.emplace(*r);
+      delete r;
+      if ($8 != nullptr) {
+        $$->update.conditions.swap(*$8);
+        delete $8;
       }
       free($2);
       free($4);
     }
     ;
+update_rel_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA ID EQ value update_rel_list {
+      if($5 !=nullptr){
+        $$ = $5;
+      }else{
+        $$ = new std::vector<UpdateRel>;
+      }
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $2;
+      r->value = $4;
+      $$->emplace_back(*r);
+      delete r;
+      free($2);
+      free($4);
+    }
+    ;    
 select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {

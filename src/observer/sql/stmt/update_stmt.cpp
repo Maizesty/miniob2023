@@ -31,41 +31,53 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::INVALID_ARGUMENT;
   }
   std::string table_name = update.relation_name;
-  std::string field_name = update.attribute_name;
+  // std::string field_name = update.attribute_name;
+  std::vector<UpdateRel> updateRel_list = update.updateRel_list;
   if (common::is_blank(table_name.c_str())) {
     LOG_WARN("invalid argument. relation name is blank.");
     return RC::INVALID_ARGUMENT;
   }
-  if (common::is_blank(field_name.c_str())) {
-    LOG_WARN("invalid argument. update field name is blank.");
-    return RC::INVALID_ARGUMENT;
+
+  for(UpdateRel uRel: updateRel_list){
+    if (common::is_blank(uRel.attribute_name.c_str())) {
+      LOG_WARN("invalid argument. update field name is blank.");
+      return RC::INVALID_ARGUMENT;
+    }
   }
+  
   Table *table = db->find_table(table_name.c_str());
   if (nullptr == table) {
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name.c_str());
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-  const FieldMeta *field_meta = table->table_meta().field(field_name.c_str());
-  if (nullptr == field_meta) {
-    LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name.c_str());
-    return RC::SCHEMA_FIELD_MISSING;
-  }
-  Value      *value = new Value();
-  if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
-    value->set_date(update.value.get_int32());
-  } else {
-    value->set_value(update.value);
-  }
 
-  std::unordered_map<std::string, Table *> table_map;
-  table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
-  FilterStmt *filter_stmt = nullptr;
-  RC rc = FilterStmt::create(
-      db, table, &table_map, update.conditions.data(), static_cast<int>(update.conditions.size()), filter_stmt);
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
-    return rc;
+  for(UpdateRel uRel: updateRel_list){
+    const FieldMeta *field_meta = table->table_meta().field(uRel.attribute_name.c_str());
+    if (nullptr == field_meta) {
+      LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    Value      *value = new Value();
+    if (field_meta->type() == AttrType::DATES && uRel.value.attr_type() == AttrType::CHARS) {
+      value->set_date(uRel.value.get_int32());
+    } else {
+      value->set_value(uRel.value);
+    }
+
+    std::unordered_map<std::string, Table *> table_map;
+    table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
+    FilterStmt *filter_stmt = nullptr;
+    RC rc = FilterStmt::create(
+        db, table, &table_map, update.conditions.data(), static_cast<int>(update.conditions.size()), filter_stmt);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
+      return rc;
+    }
+    stmt = new UpdateStmt(table, field_meta, filter_stmt, value, 1);
+
   }
-  stmt = new UpdateStmt(table, field_meta, filter_stmt, value, 1);
+  
+
+  
   return rc;
 }
