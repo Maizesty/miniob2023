@@ -105,6 +105,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         SUM_AGG
         COUNT_AGG
         AVG_AGG
+        INNER 
+        JOIN
 
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
@@ -126,6 +128,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   char *                            string;
   int                               number;
   float                             floats;
+  JoinSqlNode *                     join_list;
 }
 
 %token <number> NUMBER
@@ -177,7 +180,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <sql_node>            command_wrapper
 // commands should be a list but I use a single command instead
 %type <sql_node>            commands
-
+%type <join_list>           join_list
 %left '+' '-'
 %left '*' '/'
 %nonassoc UMINUS
@@ -493,7 +496,62 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
+    |SELECT select_attr FROM ID join_list rel_list where
+    {
+      $$ = new ParsedSqlNode(SCF_SELECT);
+      $$->selection.hasAgg = false;
+      if ($2 != nullptr) {
+        $$->selection.attributes.swap(*$2);
+        for(int i = 0; i < $$->selection.attributes.size(); i++){
+          if($$->selection.attributes[i].aggOp != NO_AGGOP){
+            $$->selection.hasAgg = true;
+            break;
+          }
+        }
+        delete $2;
+      }
+      if ($6 != nullptr) {
+        $$->selection.relations.swap(*$6);
+        delete $6;
+      }
+      $$->selection.relations.push_back($4);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+      if ($7 != nullptr) {
+        $$->selection.conditions.swap(*$7);
+        delete $7;
+      }
+      free($4);
+
+      if ($5!=nullptr){
+        $$->selection.conditions.insert($$->selection.conditions.end(),$5->conditions.begin(),$5->conditions.end());
+        $$->selection.relations.insert($$->selection.relations.end(),$5->relations.begin(),$5->relations.end());
+        free($5);
+      }
+    }
     ;
+
+join_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | INNER JOIN ID ON condition_list join_list {
+      if ($6 != nullptr) {
+        $$ = $6;
+      } else {
+        $$ = new JoinSqlNode;
+      }
+
+      // $$->push_back($2);
+      // free($2);
+      $$->relations.push_back($3);
+      $$->conditions.insert($$->conditions.end(),$5->begin(),$5->end());
+      free($3);
+      free($5);
+    }
+    ;      
+
 calc_stmt:
     CALC expression_list
     {
