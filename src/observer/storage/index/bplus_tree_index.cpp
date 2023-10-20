@@ -23,10 +23,10 @@ BplusTreeIndex::~BplusTreeIndex() noexcept
 RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta)
 {
   if (inited_) {
-    LOG_WARN("Failed to create index due to the index has been created before. file_name:%s, index:%s, field:%s",
+    LOG_WARN("Failed to create index due to the index has been created before. file_name:%s, index:%s, field:(%s)",
         file_name,
         index_meta.name(),
-        index_meta.field());
+        index_meta.fields());
     return RC::RECORD_OPENNED;
   }
 
@@ -34,27 +34,55 @@ RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, co
 
   RC rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
   if (RC::SUCCESS != rc) {
-    LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:%s, rc:%s",
+    LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:(%s), rc:%s",
         file_name,
         index_meta.name(),
-        index_meta.field(),
+        index_meta.fields(),
         strrc(rc));
     return rc;
   }
 
   inited_ = true;
   LOG_INFO(
-      "Successfully create index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field());
+      "Successfully create index, file_name:%s, index:%s, field:(%s)", file_name, index_meta.name(), index_meta.fields());
+  return RC::SUCCESS;
+}
+
+RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, vector<FieldMeta> field_meta_list)
+{
+  if (inited_) {
+    LOG_WARN("Failed to create index due to the index has been created before. file_name:%s, index:%s, field:(%s)",
+        file_name,
+        index_meta.name(),
+        index_meta.fields());
+    return RC::RECORD_OPENNED;
+  }
+
+  Index::init(index_meta, field_meta_list);
+
+  RC rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
+  if (RC::SUCCESS != rc) {
+    LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:(%s), rc:%s",
+        file_name,
+        index_meta.name(),
+        index_meta.fields(),
+        strrc(rc));
+    return rc;
+  }
+
+  inited_ = true;
+  LOG_INFO(
+      "Successfully create index, file_name:%s, index:%s, field:(%s)", file_name, index_meta.name(), index_meta.fields());
   return RC::SUCCESS;
 }
 
 RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta)
 {
   if (inited_) {
-    LOG_WARN("Failed to open index due to the index has been initedd before. file_name:%s, index:%s, field:%s",
+    LOG_WARN("Failed to open index due to the index has been initedd before. file_name:%s, index:%s, field:(%s)",
         file_name,
         index_meta.name(),
-        index_meta.field());
+        index_meta.fields());
     return RC::RECORD_OPENNED;
   }
 
@@ -62,24 +90,52 @@ RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, cons
 
   RC rc = index_handler_.open(file_name);
   if (RC::SUCCESS != rc) {
-    LOG_WARN("Failed to open index_handler, file_name:%s, index:%s, field:%s, rc:%s",
+    LOG_WARN("Failed to open index_handler, file_name:%s, index:%s, field:(%s), rc:%s",
         file_name,
         index_meta.name(),
-        index_meta.field(),
+        index_meta.fields(),
         strrc(rc));
     return rc;
   }
 
   inited_ = true;
   LOG_INFO(
-      "Successfully open index, file_name:%s, index:%s, field:%s", file_name, index_meta.name(), index_meta.field());
+      "Successfully open index, file_name:%s, index:%s, field:(%s)", file_name, index_meta.name(), index_meta.fields());
+  return RC::SUCCESS;
+}
+
+RC BplusTreeIndex::open(const char *file_name, const IndexMeta &index_meta, vector<FieldMeta> field_meta_list)
+{
+  if (inited_) {
+    LOG_WARN("Failed to open index due to the index has been initedd before. file_name:%s, index:%s, field:(%s)",
+        file_name,
+        index_meta.name(),
+        index_meta.fields());
+    return RC::RECORD_OPENNED;
+  }
+
+  Index::init(index_meta, field_meta_list);
+
+  RC rc = index_handler_.open(file_name);
+  if (RC::SUCCESS != rc) {
+    LOG_WARN("Failed to open index_handler, file_name:%s, index:%s, field:(%s), rc:%s",
+        file_name,
+        index_meta.name(),
+        index_meta.fields(),
+        strrc(rc));
+    return rc;
+  }
+
+  inited_ = true;
+  LOG_INFO(
+      "Successfully open index, file_name:%s, index:%s, field:(%s)", file_name, index_meta.name(), index_meta.fields());
   return RC::SUCCESS;
 }
 
 RC BplusTreeIndex::close()
 {
   if (inited_) {
-    LOG_INFO("Begin to close index, index:%s, field:%s", index_meta_.name(), index_meta_.field());
+    LOG_INFO("Begin to close index, index:%s, field:(%s)", index_meta_.name(), index_meta_.fields());
     index_handler_.close();
     inited_ = false;
   }

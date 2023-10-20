@@ -29,18 +29,23 @@ class FieldMeta;
 class CreateIndexStmt : public Stmt
 {
 public:
-  CreateIndexStmt(Table *table, const FieldMeta *field_meta, const std::string &index_name)
+  // CreateIndexStmt(Table *table, const FieldMeta *field_meta, const std::string &index_name)
+  //       : table_(table),
+  //         field_meta_(field_meta),
+  //         index_name_(index_name)
+  // {}
+  CreateIndexStmt(Table *table, std::vector<std::string> field_name_list, const std::string &index_name)
         : table_(table),
-          field_meta_(field_meta),
+          field_name_list_(field_name_list),
           index_name_(index_name)
   {}
-
   virtual ~CreateIndexStmt() = default;
 
   StmtType type() const override { return StmtType::CREATE_INDEX; }
 
   Table *table() const { return table_; }
-  const FieldMeta *field_meta() const { return field_meta_; }
+  // const FieldMeta *field_meta() const { return field_meta_; }
+  std::vector<std::string> field_name_list() const { return field_name_list_;}
   const std::string &index_name() const { return index_name_; }
 
 public:
@@ -48,6 +53,8 @@ public:
 
 private:
   Table *table_ = nullptr;
-  const FieldMeta *field_meta_ = nullptr;
+  //后续就用个字段名，你传个元数据干什么？
+  // const FieldMeta *field_meta_ = nullptr;
   std::string index_name_;
+  std::vector<std::string> field_name_list_;
 };

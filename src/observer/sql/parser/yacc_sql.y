@@ -126,6 +126,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   char *                            string;
   int                               number;
   float                             floats;
+  std::vecotr<std::string>          index_attrs;
 }
 
 %token <number> NUMBER
@@ -177,6 +178,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <sql_node>            command_wrapper
 // commands should be a list but I use a single command instead
 %type <sql_node>            commands
+%type <index_attrs>         index_attr_list
 
 %left '+' '-'
 %left '*' '/'
@@ -270,18 +272,39 @@ desc_table_stmt:
     ;
 
 create_index_stmt:    /*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID RBRACE
+    CREATE INDEX ID ON ID LBRACE ID index_attr_list RBRACE
     {
       $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
       CreateIndexSqlNode &create_index = $$->create_index;
       create_index.index_name = $3;
       create_index.relation_name = $5;
-      create_index.attribute_name = $7;
+      if($8 !=nullptr){
+        $$->attribute_name_list.swap(*$8);
+      }
+      $$->attribute_name_list.emplace_back(*$7);
       free($3);
       free($5);
       free($7);
+      free($8);
     }
     ;
+
+index_attr_list:
+      /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA ID index_attr_list  { 
+      if ($3 != nullptr) {
+        $$ = $3;
+      } else {
+        $$ = new std::vector<std::string>;
+      }
+      $$->emplace_back(*$2);
+      delete $2;
+    }
+    ;
+
 
 drop_index_stmt:      /*drop index 语句的语法解析树*/
     DROP INDEX ID ON ID
@@ -293,6 +316,7 @@ drop_index_stmt:      /*drop index 语句的语法解析树*/
       free($5);
     }
     ;
+
 create_table_stmt:    /*create table 语句的语法解析树*/
     CREATE TABLE ID LBRACE attr_def attr_def_list RBRACE
     {
