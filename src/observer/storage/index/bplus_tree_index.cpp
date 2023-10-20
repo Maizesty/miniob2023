@@ -60,7 +60,7 @@ RC BplusTreeIndex::create(const char *file_name, const IndexMeta &index_meta, ve
 
   Index::init(index_meta, field_meta_list);
 
-  RC rc = index_handler_.create(file_name, field_meta.type(), field_meta.len());
+  RC rc = index_handler_.create(file_name, field_meta_list);
   if (RC::SUCCESS != rc) {
     LOG_WARN("Failed to create index_handler, file_name:%s, index:%s, field:(%s), rc:%s",
         file_name,
@@ -143,21 +143,33 @@ RC BplusTreeIndex::close()
   return RC::SUCCESS;
 }
 
+
 RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
 {
-  return index_handler_.insert_entry(record + field_meta_.offset(), rid);
+  char *keys = new char[index_handler_.attr_len()];
+  int offset = 0;
+  for (FieldMeta field : field_meta_list_) {
+    memcpy(keys + offset, record + field.offset(), field.len());
+    offset += field.len();
+  }  
+  return index_handler_.insert_entry(keys, rid);
 }
 
 RC BplusTreeIndex::delete_entry(const char *record, const RID *rid)
 {
-  return index_handler_.delete_entry(record + field_meta_.offset(), rid);
+  char *keys = new char[index_handler_.attr_len()];
+  int offset = 0;
+  for (FieldMeta field : field_meta_list_) {
+    memcpy(keys + offset, record + field.offset(), field.len());
+    offset += field.len();
+  }  
+  return index_handler_.delete_entry(keys, rid);
 }
 
-IndexScanner *BplusTreeIndex::create_scanner(
-    const char *left_key, int left_len, bool left_inclusive, const char *right_key, int right_len, bool right_inclusive)
+IndexScanner *BplusTreeIndex::create_scanner(const std::vector<const char *> &left_keys, const std::vector<int> &left_lens, bool left_inclusive, const std::vector<const char *> &right_keys, const std::vector<int> &right_lens, bool right_inclusive)
 {
   BplusTreeIndexScanner *index_scanner = new BplusTreeIndexScanner(index_handler_);
-  RC rc = index_scanner->open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
+  RC rc = index_scanner->open(left_keys, left_lens, left_inclusive, right_keys, right_lens, right_inclusive);
   if (rc != RC::SUCCESS) {
     LOG_WARN("failed to open index scanner. rc=%d:%s", rc, strrc(rc));
     delete index_scanner;
@@ -181,9 +193,9 @@ BplusTreeIndexScanner::~BplusTreeIndexScanner() noexcept
 }
 
 RC BplusTreeIndexScanner::open(
-    const char *left_key, int left_len, bool left_inclusive, const char *right_key, int right_len, bool right_inclusive)
+    const std::vector<const char *> &left_keys, const std::vector<int> &left_lens, bool left_inclusive, const std::vector<const char *> &right_keys, const std::vector<int> &right_lens, bool right_inclusive)
 {
-  return tree_scanner_.open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
+  return tree_scanner_.open(left_keys, left_lens, left_inclusive, right_keys, right_lens, right_inclusive);
 }
 
 RC BplusTreeIndexScanner::next_entry(RID *rid)

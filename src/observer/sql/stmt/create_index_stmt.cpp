@@ -47,6 +47,7 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
+  std::vector<const FieldMeta *> field_metas;
   for(std::string attribute_name:create_index.attribute_name_list){  
     const FieldMeta *field_meta = table->table_meta().field(attribute_name.c_str());
     if (nullptr == field_meta) {
@@ -54,6 +55,7 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
               db->name(), table_name, attribute_name.c_str());
       return RC::SCHEMA_FIELD_NOT_EXIST;   
     }
+    field_metas.push_back(field_meta);
   }
   Index *index = table->find_index(create_index.index_name.c_str());
   if (nullptr != index) {
@@ -61,6 +63,6 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
     return RC::SCHEMA_INDEX_NAME_REPEAT;
   }
 
-  stmt = new CreateIndexStmt(table, create_index.attribute_name_list, create_index.index_name);
+  stmt = new CreateIndexStmt(table, field_metas, create_index.index_name);
   return RC::SUCCESS;
 }

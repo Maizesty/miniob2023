@@ -126,7 +126,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   char *                            string;
   int                               number;
   float                             floats;
-  std::vecotr<std::string>          index_attrs;
+  std::vector<std::string> *         index_attrs;
 }
 
 %token <number> NUMBER
@@ -279,9 +279,9 @@ create_index_stmt:    /*create index 语句的语法解析树*/
       create_index.index_name = $3;
       create_index.relation_name = $5;
       if($8 !=nullptr){
-        $$->attribute_name_list.swap(*$8);
+        $$->create_index.attribute_name_list.swap(*$8);
       }
-      $$->attribute_name_list.emplace_back(*$7);
+      $$->create_index.attribute_name_list.push_back($7);
       free($3);
       free($5);
       free($7);
@@ -300,8 +300,8 @@ index_attr_list:
       } else {
         $$ = new std::vector<std::string>;
       }
-      $$->emplace_back(*$2);
-      delete $2;
+      $$->push_back($2);
+      free($2);
     }
     ;
 

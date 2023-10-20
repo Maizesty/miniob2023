@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 #include <inttypes.h>
 #include <stdexcept>
 #include <benchmark/benchmark.h>
+#include <vector>
 
 #include "storage/index/bplus_tree.h"
 #include "storage/buffer/disk_buffer_pool.h"
@@ -158,7 +159,7 @@ public:
     BplusTreeScanner scanner(handler_);
 
     RC rc =
-        scanner.open(begin_key, sizeof(begin_key), true /*inclusive*/, end_key, sizeof(end_key), true /*inclusive*/);
+        scanner.open(std::vector<const char*>{begin_key}, std::vector<int>(sizeof(begin_key)), true /*inclusive*/, std::vector<const char*>{end_key}, std::vector<int>(sizeof(end_key)), true /*inclusive*/);
     if (rc != RC::SUCCESS) {
       stat.scan_open_failed_count++;
     } else {

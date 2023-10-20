@@ -34,9 +34,9 @@ public:
   //         field_meta_(field_meta),
   //         index_name_(index_name)
   // {}
-  CreateIndexStmt(Table *table, std::vector<std::string> field_name_list, const std::string &index_name)
+  CreateIndexStmt(Table *table, std::vector<const FieldMeta*> Field_meta_list, const std::string &index_name)
         : table_(table),
-          field_name_list_(field_name_list),
+          field_meta_list_(Field_meta_list),
           index_name_(index_name)
   {}
   virtual ~CreateIndexStmt() = default;
@@ -45,7 +45,8 @@ public:
 
   Table *table() const { return table_; }
   // const FieldMeta *field_meta() const { return field_meta_; }
-  std::vector<std::string> field_name_list() const { return field_name_list_;}
+  // std::vector<std::string> field_name_list() const { return field_name_list_;}
+  std::vector<const FieldMeta*> field_meta_list() const {return field_meta_list_;}
   const std::string &index_name() const { return index_name_; }
 
 public:
@@ -53,8 +54,8 @@ public:
 
 private:
   Table *table_ = nullptr;
-  //后续就用个字段名，你传个元数据干什么？
   // const FieldMeta *field_meta_ = nullptr;
   std::string index_name_;
-  std::vector<std::string> field_name_list_;
+  // std::vector<std::string> field_name_list_;
+  std::vector<const FieldMeta*> field_meta_list_;
 };

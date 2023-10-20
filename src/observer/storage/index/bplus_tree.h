@@ -30,6 +30,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/lang/comparator.h"
 #include "common/log/log.h"
 
+#define MAX_NUM_ATTR 32
+
 /**
  * @brief B+树的实现
  * @defgroup BPlusTree
@@ -99,28 +101,62 @@ class KeyComparator
 public:
   void init(AttrType type, int length)
   {
+    attr_types_.push_back(type);
+    attr_lengths_.push_back(length);
+    offset += length;
+    AttrComparator attr_comparator_;
     attr_comparator_.init(type, length);
+    attr_comparators_.push_back(attr_comparator_);
   }
 
-  const AttrComparator &attr_comparator() const
+  void init(vector<FieldMeta> field_meta_list)
   {
-    return attr_comparator_;
+    for(FieldMeta fieldMeta : field_meta_list){
+      this->init(fieldMeta.type(),fieldMeta.len());
+    }
+  }
+
+  const AttrComparator &attr_comparator(int index = 0) const
+  {
+    return attr_comparators_[index];
+  }
+
+  int compare(const char *v1, const char *v2) const{
+    int result = 0;
+    int attr_offset = 0;
+    for(int i =0;i<attr_comparators_.size();i++){
+      result = attr_comparators_[i](v1+attr_offset, v2+attr_offset);
+      if (result != 0)
+        return result;
+      attr_offset += attr_lengths_[i];
+    }
+    return result;
   }
 
   int operator()(const char *v1, const char *v2) const
   {
-    int result = attr_comparator_(v1, v2);
-    if (result != 0) {
-      return result;
+    // int result = attr_comparator_(v1, v2);
+    // if (result != 0) {
+    //   return result;
+    // }
+    int result = 0;
+    int attr_offset = 0;
+    for(int i =0;i<attr_comparators_.size();i++){
+      result = attr_comparators_[i](v1+attr_offset, v2+attr_offset);
+      if (result != 0)
+        return result;
+      attr_offset += attr_lengths_[i];
     }
-
-    const RID *rid1 = (const RID *)(v1 + attr_comparator_.attr_length());
-    const RID *rid2 = (const RID *)(v2 + attr_comparator_.attr_length());
+    const RID *rid1 = (const RID *)(v1 + offset);
+    const RID *rid2 = (const RID *)(v2 + offset);
     return RID::compare(rid1, rid2);
   }
 
 private:
-  AttrComparator attr_comparator_;
+  vector<AttrComparator> attr_comparators_;
+  vector<AttrType> attr_types_;
+  vector<int> attr_lengths_;
+  int offset = 0;
 };
 
 /**
@@ -182,26 +218,43 @@ class KeyPrinter
 public:
   void init(AttrType type, int length)
   {
+    attr_types_.push_back(type);
+    attr_lengths_.push_back(length);
+    offset += length;
+    AttrPrinter attr_printer_;
     attr_printer_.init(type, length);
+    attr_printers_.push_back(attr_printer_);
   }
 
-  const AttrPrinter &attr_printer() const
+  void init(vector<FieldMeta> field_meta_list)
   {
-    return attr_printer_;
+    for(FieldMeta fieldMeta : field_meta_list){
+      this->init(fieldMeta.type(),fieldMeta.len());
+    }
+  }
+  const AttrPrinter &attr_printer(int index =0) const
+  {
+    return attr_printers_[index];
   }
 
   std::string operator()(const char *v) const
   {
     std::stringstream ss;
-    ss << "{key:" << attr_printer_(v) << ",";
+    for(AttrPrinter attr_printer_ : attr_printers_){
+      ss << "{key:" << attr_printer_(v) << ",";
+    }
 
-    const RID *rid = (const RID *)(v + attr_printer_.attr_length());
+
+    const RID *rid = (const RID *)(v + offset);
     ss << "rid:{" << rid->to_string() << "}}";
     return ss.str();
   }
 
 private:
-  AttrPrinter attr_printer_;
+  vector<AttrPrinter> attr_printers_;
+  vector<AttrType> attr_types_;
+  vector<int> attr_lengths_;
+  int offset = 0;
 };
 
 /**
@@ -220,17 +273,17 @@ struct IndexFileHeader
   PageNum root_page;          ///< 根节点在磁盘中的页号
   int32_t internal_max_size;  ///< 内部节点最大的键值对数
   int32_t leaf_max_size;      ///< 叶子节点最大的键值对数
-  int32_t attr_length;        ///< 键值的长度
+  int32_t attr_length[MAX_NUM_ATTR];        ///< 键值的长度
   int32_t key_length;         ///< attr length + sizeof(RID)
-  AttrType attr_type;         ///< 键值的类型
-
+  AttrType attr_type[MAX_NUM_ATTR];         ///< 键值的类型
+  int32_t nums=0;
+  int32_t attr_len;
   const std::string to_string()
   {
     std::stringstream ss;
 
-    ss << "attr_length:" << attr_length << ","
+    ss << "attr nums:" << nums << ","
        << "key_length:" << key_length << ","
-       << "attr_type:" << attr_type << ","
        << "root_page:" << root_page << ","
        << "internal_max_size:" << internal_max_size << ","
        << "leaf_max_size:" << leaf_max_size << ";";
@@ -471,6 +524,10 @@ public:
             int internal_max_size = -1, 
             int leaf_max_size = -1);
 
+  RC create(const char *file_name, 
+            vector<FieldMeta> field_meta_list,
+            int internal_max_size = -1, 
+            int leaf_max_size = -1);
   /**
    * 打开名为fileName的索引文件。
    * 如果方法调用成功，则indexHandle为指向被打开的索引句柄的指针。
@@ -505,7 +562,7 @@ public:
    * @param key_len user_key的长度
    * @param rid  返回值，记录记录所在的页面号和slot
    */
-  RC get_entry(const char *user_key, int key_len, std::list<RID> &rids);
+  RC get_entry(const std::vector<const char *> &user_keys, const std::vector<int> &key_lens, std::list<RID> &rids);
 
   RC sync();
 
@@ -515,6 +572,7 @@ public:
    * @note thread unsafe
    */
   bool validate_tree();
+  int attr_len();
 
 public:
   /**
@@ -607,8 +665,9 @@ public:
    * @param right_len right_user_key 的内存大小(只有在变长字段中才会关注)
    * @param right_inclusive 右边界的值是否包含在内
    */
-  RC open(const char *left_user_key, int left_len, bool left_inclusive, 
-          const char *right_user_key, int right_len, bool right_inclusive);
+  RC open(const std::vector<const char *> &left_user_keys, const std::vector<int> &left_lens, 
+      bool left_inclusive, const std::vector<const char *> &right_user_keys, const std::vector<int> &right_lens, 
+      bool right_inclusive);
 
   RC next_entry(RID &rid);
 
@@ -618,7 +677,7 @@ private:
   /**
    * 如果key的类型是CHARS, 扩展或缩减user_key的大小刚好是schema中定义的大小
    */
-  RC fix_user_key(const char *user_key, int key_len, bool want_greater, char **fixed_key, bool *should_inclusive);
+  RC fix_user_key(const char *user_key, int key_len, bool want_greater, char **fixed_key, bool *should_inclusive,int index);
 
   void fetch_item(RID &rid);
   bool touch_end();

@@ -39,8 +39,8 @@ public:
   /**
    * 扫描指定范围的数据
    */
-  IndexScanner *create_scanner(const char *left_key, int left_len, bool left_inclusive, const char *right_key,
-      int right_len, bool right_inclusive) override;
+IndexScanner *create_scanner(const std::vector<const char *> &left_keys, const std::vector<int> &left_lens, bool left_inclusive, const std::vector<const char *> &right_keys, const std::vector<int> &right_lens, bool right_inclusive)
+override;
 
   RC sync() override;
 
@@ -62,8 +62,7 @@ public:
   RC next_entry(RID *rid) override;
   RC destroy() override;
 
-  RC open(const char *left_key, int left_len, bool left_inclusive, const char *right_key, int right_len,
-      bool right_inclusive);
+  RC open(const std::vector<const char *> &left_keys, const std::vector<int> &left_lens, bool left_inclusive, const std::vector<const char *> &right_keys, const std::vector<int> &right_lens, bool right_inclusive);
 
 private:
   BplusTreeScanner tree_scanner_;

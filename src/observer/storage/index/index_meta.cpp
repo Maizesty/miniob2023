@@ -23,28 +23,38 @@ const static Json::StaticString FIELD_NAME("name");
 // const static Json::StaticString FIELD_FIELD_NAME("field_name");
 const static Json::StaticString FIELD_FIELD_NAMES("field_names");
 
-RC IndexMeta::init(const char *name, const FieldMeta &field)
-{
-  if (common::is_blank(name)) {
+// RC IndexMeta::init(const char *name, const FieldMeta &field)
+// {
+//   if (common::is_blank(name)) {
+//     LOG_ERROR("Failed to init index, name is empty.");
+//     return RC::INVALID_ARGUMENT;
+//   }
+
+//   name_ = name;
+//   field_meta_list_.emplace_back(field);
+//   return RC::SUCCESS;
+// }
+RC IndexMeta::init(const char *name, std::vector<const FieldMeta*> field_meta_list){
+    if (common::is_blank(name)) {
     LOG_ERROR("Failed to init index, name is empty.");
     return RC::INVALID_ARGUMENT;
   }
 
   name_ = name;
-  field_name_list_.push_back(field.name());
+  field_meta_list_.swap(field_meta_list);
   return RC::SUCCESS;
 }
-RC IndexMeta::init(const char *name, std::string field_name)
-{
-  if (common::is_blank(name)) {
-    LOG_ERROR("Failed to init index, name is empty.");
-    return RC::INVALID_ARGUMENT;
-  }
+// RC IndexMeta::init(const char *name, std::string field_name)
+// {
+//   if (common::is_blank(name)) {
+//     LOG_ERROR("Failed to init index, name is empty.");
+//     return RC::INVALID_ARGUMENT;
+//   }
 
-  name_ = name;
-  field_name_list_.push_back(field_name);
-  return RC::SUCCESS;
-}
+//   name_ = name;
+//   field_name_list_.push_back(field_name);
+//   return RC::SUCCESS;
+// }
 
 RC init(const char *name, std::vector<std::string> field_name_list);
 
@@ -54,10 +64,10 @@ void IndexMeta::to_json(Json::Value &json_value) const
   json_value[FIELD_NAME] = name_;
   // json_value[FIELD_FIELD_NAME] = field_;
   Json::Value field_names_value;
-  for (const auto &field_name : field_name_list_) {
+  for (auto field_meta : field_meta_list_) {
     Json::Value field_name_value;
     // index.to_json(index_value);
-    field_name_value = field_name;
+    field_name_value = field_meta->name();
     field_names_value.append(field_name_value);
   }
   json_value[FIELD_FIELD_NAMES] = field_names_value;
@@ -68,26 +78,29 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
   const Json::Value &name_value = json_value[FIELD_NAME];
   Json::Value index_name;
 
-  const Json::Value &field_value = json_value[FIELD_FIELD_NAMES];
+  const Json::Value &fields_value = json_value[FIELD_FIELD_NAMES];
   if (!name_value.isString()) {
     LOG_ERROR("Index name is not a string. json value=%s", name_value.toStyledString().c_str());
     return RC::INTERNAL;
   }
 
-  if (!field_value.isString()) {
-    LOG_ERROR("Field name of index [%s] is not a string. json value=%s",
-        name_value.asCString(),
-        field_value.toStyledString().c_str());
+  if (!fields_value.isArray() || fields_value.size() <= 0) {
+    LOG_ERROR("Invalid table meta. fields is not array, json value=%s", fields_value.toStyledString().c_str());
     return RC::INTERNAL;
   }
-
-  const FieldMeta *field = table.field(field_value.asCString());
-  if (nullptr == field) {
+  int                    field_num = fields_value.size();
+  std::vector<const FieldMeta*> fields;
+  for (int i = 0; i < field_num; i++) {
+    const Json::Value &field_value = fields_value[i];
+    const FieldMeta *field = table.field(field_value.asCString());
+    if (nullptr == field) {
     LOG_ERROR("Deserialize index [%s]: no such field: %s", name_value.asCString(), field_value.asCString());
     return RC::SCHEMA_FIELD_MISSING;
+    }
+    fields.push_back(field);
   }
 
-  return index.init(name_value.asCString(), *field);
+  return index.init(name_value.asCString(), fields);
 }
 
 const char *IndexMeta::name() const
@@ -97,27 +110,27 @@ const char *IndexMeta::name() const
 
 const char *IndexMeta::field(int index) const
 {
-  if (index > field_name_list_.size()){
+  if (index > field_meta_list_.size()){
     return "";
   }
-  return field_name_list_[index].c_str();
+  return field_meta_list_[index]->name();
 }
 
 const char *IndexMeta::fields() const{
-  std::string *result = new std::string(field_name_list_[0]);
-  for(int i = 1; i < field_name_list_.size(); i++){
-    *result+=", "+field_name_list_[i];
+  std::string *result = new std::string(field_meta_list_[0]->name());
+  for(int i = 1; i < field_meta_list_.size(); i++){
+    *result+=", "+ std::string(field_meta_list_[i]->name());
   }
   return result->c_str();
 }
-std::vector<std::string> IndexMeta::field_name_list() const{
-  return field_name_list_;
+std::vector<const FieldMeta*> IndexMeta::field_meta_list() const{
+  return field_meta_list_;
 }
 
 void IndexMeta::desc(std::ostream &os) const
 {
   os << "index name=" << name_ ;
-  for(std::string field_name : field_name_list_){
-    os << ", field=" << field_name;
+  for(auto field_meta : field_meta_list_){
+    os << ", field=" << field_meta->name();
   }
 }
