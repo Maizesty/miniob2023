@@ -61,8 +61,8 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
       }else{
         return RC::INVALID_ARGUMENT;
       }
-  }
-  value->set_value(update.value);
+  }else
+    value->set_value(update.value);
 
   std::unordered_map<std::string, Table *> table_map;
   table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
