@@ -137,8 +137,8 @@ RC PhysicalPlanGenerator::create_plan(TableGetLogicalOperator &table_get_oper, u
     }
   }
 
-  // if (index != nullptr) 
-  if(false)
+  if (index != nullptr) 
+  // if(false)
   {
     ASSERT(value_expr != nullptr, "got an index but value expr is null ?");
 

@@ -512,7 +512,7 @@ RC Table::update_record(Record &record,Record &newRecord)
   if(rc!=RC::SUCCESS)
     return rc;
   record.set_data(newRecord.data());
-  rc=insert_entry_of_indexes(record.data(), record.rid());
+  rc = record_handler_->update_record(&record);
   if(rc!=RC::SUCCESS)
     return rc;
   // for (Index *index : indexes_) {
@@ -523,7 +523,8 @@ RC Table::update_record(Record &record,Record &newRecord)
   // }
   // rc = record_handler_->delete_record(&record.rid());
   // return rc;
-  rc = record_handler_->update_record(&record);
+
+  rc=insert_entry_of_indexes(record.data(), record.rid());
   return rc;
 }
 
