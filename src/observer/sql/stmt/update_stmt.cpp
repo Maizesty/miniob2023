@@ -51,33 +51,33 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  for(UpdateRel uRel: updateRel_list){
-    const FieldMeta *field_meta = table->table_meta().field(uRel.attribute_name.c_str());
+  Value * values = new Value[UpdateRel_list.size()];
+  FieldMeta * field_metas = new FieldMeta[UpdateRel_list.size()];
+  for(int i = 0; i < updateRel_list.size(); i++){
+    const FieldMeta *field_meta = table->table_meta().field(updateRel_list[i].attribute_name.c_str());
     if (nullptr == field_meta) {
-      LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
+      LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), updateRel_list[i].attribute_name.c_str());
       return RC::SCHEMA_FIELD_MISSING;
     }
     Value      *value = new Value();
-    if (field_meta->type() == AttrType::DATES && uRel.value.attr_type() == AttrType::CHARS) {
-      value->set_date(uRel.value.get_int32());
+    if (field_meta->type() == AttrType::DATES && updateRel_list[i].value.attr_type() == AttrType::CHARS) {
+      value->set_date(updateRel_list[i].value.get_int32());
     } else {
-      value->set_value(uRel.value);
+      value->set_value(updateRel_list[i].value);
     }
-
-    std::unordered_map<std::string, Table *> table_map;
-    table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
-    FilterStmt *filter_stmt = nullptr;
-    RC rc = FilterStmt::create(
-        db, table, &table_map, update.conditions.data(), static_cast<int>(update.conditions.size()), filter_stmt);
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
-      return rc;
-    }
-    stmt = new UpdateStmt(table, field_meta, filter_stmt, value, 1);
-
+    values[i] = value;
+    field_metas[i] = field_meta;
   }
   
-
-  
+  std::unordered_map<std::string, Table *> table_map;
+  table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
+  FilterStmt *filter_stmt = nullptr;
+  RC rc = FilterStmt::create(
+      db, table, &table_map, update.conditions.data(), static_cast<int>(update.conditions.size()), filter_stmt);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
+    return rc;
+  }
+  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, UpdateRel_list.size());
   return rc;
 }
