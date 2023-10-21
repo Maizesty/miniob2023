@@ -81,6 +81,16 @@ public:
   int index_size(){
     return field_meta_list_.size();
   }
+  int total_len(){
+    int len = 0;
+    for(auto field_meta : field_meta_list_){
+      len += field_meta.len();
+    }
+    return len;
+  }
+  std::vector<FieldMeta> field_meta_list(){
+    return field_meta_list_;
+  }
 
 protected:
   RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);

@@ -124,6 +124,7 @@ AVG                                     RETURN_TOKEN(AVG_AGG);
 SUM                                     RETURN_TOKEN(SUM_AGG);
 INNER                                   RETURN_TOKEN(INNER);
 JOIN                                    RETURN_TOKEN(JOIN);
+UNIQUE                                  RETURN_TOKEN(UNIQUE);
 {ID}                                    yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("                                     RETURN_TOKEN(LBRACE);
 ")"                                     RETURN_TOKEN(RBRACE);

@@ -387,7 +387,7 @@ RC Table::get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly
   return rc;
 }
 
-RC Table::create_index(Trx *trx, std::vector<const FieldMeta*> field_meta_list, const char *index_name)
+RC Table::create_index(Trx *trx, std::vector<const FieldMeta*> field_meta_list, const char *index_name,bool isUnique)
 {
   if (common::is_blank(index_name) || field_meta_list.empty()) {
     LOG_INFO("Invalid input arguments, table name is %s, index_name is empty", name());
@@ -400,7 +400,7 @@ RC Table::create_index(Trx *trx, std::vector<const FieldMeta*> field_meta_list, 
     }
   }
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, field_meta_list);
+  RC rc = new_index_meta.init(index_name, field_meta_list,isUnique);
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s", 
              name(), index_name);
@@ -512,7 +512,7 @@ RC Table::update_record(Record &record,Record &newRecord)
   if(rc!=RC::SUCCESS)
     return rc;
   record.set_data(newRecord.data());
-  rc = record_handler_->update_record(&record);
+  rc=insert_entry_of_indexes(record.data(), record.rid());
   if(rc!=RC::SUCCESS)
     return rc;
   // for (Index *index : indexes_) {
@@ -523,8 +523,9 @@ RC Table::update_record(Record &record,Record &newRecord)
   // }
   // rc = record_handler_->delete_record(&record.rid());
   // return rc;
+  rc = record_handler_->update_record(&record);
 
-  rc=insert_entry_of_indexes(record.data(), record.rid());
+
   return rc;
 }
 
@@ -532,6 +533,22 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
 {
   RC rc = RC::SUCCESS;
   for (Index *index : indexes_) {
+    if(index->index_meta().isUnique()){
+      auto field_meta_list = index->field_meta_list();
+      std::vector<const char*> keys;
+      std::vector<int> lens;
+
+      int offset = 0;
+      for(int i =0; i <index->field_meta_list().size();i++){
+        keys.push_back(record+field_meta_list[i].offset());
+        lens.push_back(field_meta_list[i].len());
+      }
+      IndexScanner *scanner = index->create_scanner(keys,lens,true,keys,lens,true);
+      RID rid;
+      if(scanner->next_entry(&rid) == RC::SUCCESS){
+        return RC::INTERNAL;
+      }
+    }
     rc = index->insert_entry(record, &rid);
     if (rc != RC::SUCCESS) {
       break;
