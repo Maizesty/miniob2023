@@ -1818,12 +1818,13 @@ RC BplusTreeScanner::open(const std::vector<const char *> &left_user_keys, const
           LOG_WARN("failed to fix left user key. rc=%s", strrc(rc));
           return rc;
         }
-        memcpy(fixed_left_keys + offset, fixed_left_key, tree_handler_.file_header_.attr_length[i]);
-        offset += tree_handler_.file_header_.attr_length[i];
+
         if (should_inclusive_after_fix) {
           left_inclusive = true;
         }
       }
+      memcpy(fixed_left_keys + offset, fixed_left_key, tree_handler_.file_header_.attr_length[i]);
+      offset += tree_handler_.file_header_.attr_length[i];
 
     }
 
@@ -1895,12 +1896,12 @@ RC BplusTreeScanner::open(const std::vector<const char *> &left_user_keys, const
           LOG_WARN("failed to fix right user key. rc=%s", strrc(rc));
           return rc;
         }
-        memcpy(fixed_right_keys + offset, fixed_right_key, tree_handler_.file_header_.attr_length[i]);
-        offset += tree_handler_.file_header_.attr_length[i];
         if (should_include_after_fix) {
           right_inclusive = true;
         }
       }
+      memcpy(fixed_right_keys + offset, fixed_right_key, tree_handler_.file_header_.attr_length[i]);
+      offset += tree_handler_.file_header_.attr_length[i];
     }
     if (right_inclusive) {
       right_key_ = tree_handler_.make_key(fixed_right_keys, *RID::max());
