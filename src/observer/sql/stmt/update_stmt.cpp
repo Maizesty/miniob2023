@@ -57,13 +57,13 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
       value->set_date(update.value.get_int32());
     }else if((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::FLOATS)){
-        value->set_int(round(update.value.get_float()));
+        value->set_int(round_ob(update.value.get_float()));
       }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::INTS)){
         value->set_float((float)(update.value.get_int()));
       }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::CHARS)){
-        value->set_float(stringToNumber(update.value.get_string()));
+        value->set_float(stringToNumber_ob(update.value.get_string()));
       }else if ((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::CHARS)){
-        value->set_int(round(stringToNumber(update.value.get_string())));
+        value->set_int(round_ob(stringToNumber_ob(update.value.get_string())));
       }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::INTS)){
         value->set_string(std::to_string(update.value.get_int()).c_str());
       }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::FLOATS)){
