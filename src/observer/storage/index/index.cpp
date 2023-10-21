@@ -17,6 +17,18 @@ See the Mulan PSL v2 for more details. */
 RC Index::init(const IndexMeta &index_meta, const FieldMeta &field_meta)
 {
   index_meta_ = index_meta;
-  field_meta_ = field_meta;
+  // field_meta_ = field_meta;
+  field_meta_list_.push_back(field_meta);
+  return RC::SUCCESS;
+}
+
+RC Index::init(const IndexMeta &index_meta, const std::vector<const FieldMeta*>  &field_meta_list)
+{
+  index_meta_ = index_meta;
+  // field_meta_ = field_meta;
+  // field_meta_list_.swap(field_meta_list);
+  for(int i = 0;i<field_meta_list.size();i++){
+    this->field_meta_list_.push_back(*field_meta_list[i]);
+  }
   return RC::SUCCESS;
 }

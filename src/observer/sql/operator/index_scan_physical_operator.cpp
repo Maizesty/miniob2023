@@ -40,11 +40,11 @@ RC IndexScanPhysicalOperator::open(Trx *trx)
     return RC::INTERNAL;
   }
 
-  IndexScanner *index_scanner = index_->create_scanner(left_value_.data(),
-      left_value_.length(),
+  IndexScanner *index_scanner = index_->create_scanner(std::vector<const char*>{left_value_.data()},
+      std::vector<int>{left_value_.length()},
       left_inclusive_,
-      right_value_.data(),
-      right_value_.length(),
+      std::vector<const char*>{right_value_.data()},
+      std::vector<int>{right_value_.length()},
       right_inclusive_);
   if (nullptr == index_scanner) {
     LOG_WARN("failed to create index scanner");

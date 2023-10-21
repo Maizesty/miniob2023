@@ -18,7 +18,9 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/value.h"
 #include "storage/db/db.h"
 #include "storage/field/field_meta.h"
+#include "utlis/typecast.h"
 #include "storage/table/table.h"
+#include "string"
 UpdateStmt::UpdateStmt(Table *table, const FieldMeta *field_meta, FilterStmt *filter_stmt, Value *values, int value_amount)
     : table_(table), field_meta_(field_meta), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
 {}
@@ -51,11 +53,27 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::SCHEMA_FIELD_MISSING;
   }
   Value      *value = new Value();
-  if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
-    value->set_date(update.value.get_int32());
-  } else {
+  if(field_meta->type() != update.value.attr_type()){
+    if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
+      value->set_date(update.value.get_int32());
+    }else if((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::FLOATS)){
+        value->set_int(round(update.value.get_float()));
+      }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::INTS)){
+        value->set_float((float)(update.value.get_int()));
+      }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::CHARS)){
+        value->set_float(stringToNumber(update.value.get_string()));
+      }else if ((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::CHARS)){
+        value->set_int(round(stringToNumber(update.value.get_string())));
+      }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::INTS)){
+        value->set_string(std::to_string(update.value.get_int()).c_str());
+      }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::FLOATS)){
+        value->set_string(std::to_string(update.value.get_float()).c_str());
+      }else
+      {
+        return RC::INVALID_ARGUMENT;
+      }
+  }else
     value->set_value(update.value);
-  }
 
   std::unordered_map<std::string, Table *> table_map;
   table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));

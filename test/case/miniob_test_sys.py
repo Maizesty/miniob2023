@@ -604,6 +604,8 @@ class EvalResult:
     self.__message = []
     
   def append_message(self, message):
+    if message[-1] == 's':
+      message='\033[92m'+message+'\033[0m'
     self.__message.append(message)
     
   def get_message(self):
@@ -1068,13 +1070,14 @@ def run(options) -> Tuple[bool, str]:
     #eval_result.clear_message()
     eval_result.append_message(str(ex.args))
 
-  return result, eval_result.to_json_string()
+  return result, eval_result.get_message()
 
 if __name__ == '__main__':
   os.setpgrp()
   options = __init_options()
 
   result, evaluation = run(options)
+
 
   exit_code = 0
   if result is False:

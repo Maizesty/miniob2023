@@ -80,14 +80,14 @@ public:
    */
   RC insert_record(Record &record);
   RC delete_record(const Record &record);
-  RC update_record(const Record &record,Record &newRecord);
+  RC update_record(Record &record,Record &newRecord);
   RC visit_record(const RID &rid, bool readonly, std::function<void(Record &)> visitor);
   RC get_record(const RID &rid, Record &record);
 
   RC recover_insert_record(Record &record);
 
   // TODO refactor
-  RC create_index(Trx *trx, const FieldMeta *field_meta, const char *index_name);
+  RC create_index(Trx *trx, std::vector<const FieldMeta*> field_meta_list, const char *index_name);
 
   RC get_record_scanner(RecordFileScanner &scanner, Trx *trx, bool readonly);
 

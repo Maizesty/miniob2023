@@ -180,7 +180,7 @@ public:
    * @param rid 要删除的记录标识
    */
   RC delete_record(const RID *rid);
-
+  RC update_record(const Record *record);
   /**
    * @brief 获取指定位置的记录数据
    *
@@ -265,6 +265,8 @@ public:
    * @param rid 待删除记录的标识符
    */
   RC delete_record(const RID *rid);
+
+  RC update_record(const Record *record);
 
   /**
    * @brief 插入一个新的记录到指定文件中，并返回该记录的标识符
