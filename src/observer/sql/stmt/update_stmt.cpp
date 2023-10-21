@@ -51,11 +51,18 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::SCHEMA_FIELD_MISSING;
   }
   Value      *value = new Value();
-  if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
-    value->set_date(update.value.get_int32());
-  } else {
-    value->set_value(update.value);
+  if(field_meta->type() != update.value.attr_type()){
+    if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
+      value->set_date(update.value.get_int32());
+    }else if((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::FLOATS)){
+        value->set_int((int)(update.value.get_float()));
+      }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::INTS)){
+        value->set_int((float)(update.value.get_int()));
+      }else{
+        return RC::INVALID_ARGUMENT;
+      }
   }
+  value->set_value(update.value);
 
   std::unordered_map<std::string, Table *> table_map;
   table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));

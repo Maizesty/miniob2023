@@ -247,8 +247,6 @@ RC RecordPageHandler::update_record(const Record *record)
     memcpy(record_data, record->data(), page_header_->record_real_size);
     bitmap.set_bit(record->rid().slot_num);
     frame_->mark_dirty();
-    printf("update_record: page_num %d, slot num %d\n", get_page_num(), record->rid().slot_num);
-    // LOG_TRACE("Update record. file_id=%d, page num=%d,slot=%d", file_id_, rec->rid.page_num, rec->rid.slot_num);
     return RC::SUCCESS;
   }
 }
