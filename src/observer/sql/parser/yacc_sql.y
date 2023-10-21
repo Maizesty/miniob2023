@@ -130,6 +130,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   float                             floats;
   std::vector<std::string> *         index_attrs;
   JoinSqlNode *                     join_list;
+  std::vector<UpdateRel> *          update_rel_list;
 }
 
 %token <number> NUMBER
@@ -183,7 +184,7 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <sql_node>            commands
 %type <index_attrs>         index_attr_list
 %type <join_list>           join_list
-
+%type <update_rel_list>     update_rel_list
 %left '+' '-'
 %left '*' '/'
 %nonassoc UMINUS
@@ -496,20 +497,52 @@ delete_stmt:    /*  delete 语句的语法解析树*/
     }
     ;
 update_stmt:      /*  update 语句的语法解析树*/
-    UPDATE ID SET ID EQ value where 
+    UPDATE ID SET ID EQ value update_rel_list where 
     {
       $$ = new ParsedSqlNode(SCF_UPDATE);
       $$->update.relation_name = $2;
-      $$->update.attribute_name = $4;
-      $$->update.value = *$6;
-      if ($7 != nullptr) {
-        $$->update.conditions.swap(*$7);
-        delete $7;
+      // $$->update.attribute_name = $4;
+      // $$->update.value = *$6;
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $4;
+      r->value = *$6;
+      if($7 != nullptr){
+        $$->update.updateRel_list = *$7;
+      }else{
+        std::vector<UpdateRel>* urel = new std::vector<UpdateRel>;
+        $$->update.updateRel_list = *(urel);
+        delete urel;
+      }
+      $$->update.updateRel_list.emplace_back(*r);
+      delete r;
+      if ($8 != nullptr) {
+        $$->update.conditions.swap(*$8);
+        delete $8;
       }
       free($2);
       free($4);
     }
     ;
+update_rel_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA ID EQ value update_rel_list {
+      if($5 !=nullptr){
+        $$ = $5;
+      }else{
+        $$ = new std::vector<UpdateRel>;
+      }
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $2;
+      r->value = *$4;
+      $$->emplace_back(*r);
+      delete r;
+      free($2);
+      free($4);
+    }
+    ;    
 select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {

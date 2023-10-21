@@ -143,8 +143,9 @@ union YYSTYPE
   float                             floats;
   std::vector<std::string> *         index_attrs;
   JoinSqlNode *                     join_list;
+  std::vector<UpdateRel> *          update_rel_list;
 
-#line 148 "yacc_sql.hpp"
+#line 149 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
