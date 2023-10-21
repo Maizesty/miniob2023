@@ -9,8 +9,8 @@
 
 using namespace std;
 
-UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,const FieldMeta* field_meta)
-    : table_(table), values_(std::move(values)), field_meta_(field_meta)
+UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,vector<const FieldMeta *> &&field_metas)
+    : table_(table), values_(std::move(values)), field_metas_(field_metas)
 {}
 RC UpdatePhysicalOperator::open(Trx *trx)
 {
@@ -51,14 +51,16 @@ RC UpdatePhysicalOperator::next()
     int record_size = table_->table_meta().record_size();
     char *record_data = (char *)malloc(record_size);
     memcpy(record_data, record.data(), record_size);
-    size_t copy_len = field_meta_->len();
-    if(field_meta_->type()==CHARS){
-      const size_t data_len = values_[0].length();
-      if(copy_len> data_len){
-        copy_len = data_len + 1;
-      }
-    } 
-    memcpy(record_data+field_meta_->offset(), values_[0].data(),copy_len);
+  for(int i = 0; i < field_metas_.size(); i++){
+      size_t copy_len = field_metas_[i]->len();
+      if(field_metas_[i]->type() == CHARS){
+        const size_t data_len = values_[i].length();
+        if(copy_len > data_len){
+          copy_len = data_len + 1;
+        }
+      } 
+      memcpy(record_data + field_metas_[i]->offset(), values_[i].data(), copy_len);
+    }
     newRecord.set_data_owner(record_data, record_size);
     rc = trx_->update_record(table_, record,newRecord);
     if (rc != RC::SUCCESS) {

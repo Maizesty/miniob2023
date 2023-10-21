@@ -37,7 +37,7 @@ public:
 
   // RC init(const char *name, const FieldMeta &field);
   // RC init(const char *name, std::string field_name);
-  RC init(const char *name, std::vector<const FieldMeta*> field_meta_list);
+  RC init(const char *name, std::vector<const FieldMeta*> field_meta_list, bool isUnique = false);
 public:
   const char *name() const;
   const char *field(int index=0) const;
@@ -46,6 +46,7 @@ public:
   void desc(std::ostream &os) const;
   std::vector<std::string> field_name_list() const{return field_name_list_;}
   int size() const {return field_name_list_.size();}
+  bool isUnique() const {return isUnique_;}
 public:
   void to_json(Json::Value &json_value) const;
   static RC from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index);
@@ -55,5 +56,6 @@ protected:
   //从原来单字段改成多字段同时先对原生但字段进行支持
   // std::string field_;  // field's name
   std::vector<std::string> field_name_list_;
+  bool isUnique_;
   // std::vector<const FieldMeta*> field_meta_list_;
 };

@@ -106,7 +106,11 @@ struct SelectSqlNode
   std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
   bool                            hasAgg;
 };
-
+struct JoinSqlNode
+{
+  std::vector<std::string>        relations;
+  std::vector<ConditionSqlNode>   conditions;
+};
 /**
  * @brief 算术表达式计算的语法树
  * @ingroup SQLParser
@@ -140,6 +144,11 @@ struct DeleteSqlNode
   std::vector<ConditionSqlNode> conditions;
 };
 
+struct UpdateRel{
+  std::string                   attribute_name;        ///< 更新的字段，仅支持一个字段
+  Value                         value;                 ///< 更新的值，仅支持一个字段
+};
+
 /**
  * @brief 描述一个update语句
  * @ingroup SQLParser
@@ -147,8 +156,9 @@ struct DeleteSqlNode
 struct UpdateSqlNode
 {
   std::string                   relation_name;         ///< Relation to update
-  std::string                   attribute_name;        ///< 更新的字段，仅支持一个字段
-  Value                         value;                 ///< 更新的值，仅支持一个字段
+  // std::string                   attribute_name;        ///< 更新的字段，仅支持一个字段
+  // Value                         value;                 ///< 更新的值，仅支持一个字段
+  std::vector<UpdateRel>        updateRel_list;
   std::vector<ConditionSqlNode> conditions;
 };
 
@@ -198,6 +208,7 @@ struct CreateIndexSqlNode
   std::string relation_name;   ///< Relation name
   // std::string attribute_name;  ///< Attribute name
   std::vector<std::string> attribute_name_list;
+  bool                    isUnique=false;
 };
 
 /**

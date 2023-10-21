@@ -105,7 +105,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         SUM_AGG
         COUNT_AGG
         AVG_AGG
-
+        INNER 
+        JOIN
+        UNIQUE
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
   ParsedSqlNode *                   sql_node;
@@ -127,6 +129,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   int                               number;
   float                             floats;
   std::vector<std::string> *         index_attrs;
+  JoinSqlNode *                     join_list;
+  std::vector<UpdateRel> *          update_rel_list;
 }
 
 %token <number> NUMBER
@@ -179,7 +183,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 // commands should be a list but I use a single command instead
 %type <sql_node>            commands
 %type <index_attrs>         index_attr_list
-
+%type <join_list>           join_list
+%type <update_rel_list>     update_rel_list
 %left '+' '-'
 %left '*' '/'
 %nonassoc UMINUS
@@ -282,10 +287,27 @@ create_index_stmt:    /*create index 语句的语法解析树*/
         $$->create_index.attribute_name_list.swap(*$8);
       }
       $$->create_index.attribute_name_list.push_back($7);
+      $$->create_index.isUnique = false;
       free($3);
       free($5);
       free($7);
       free($8);
+    }
+    | CREATE UNIQUE INDEX ID ON ID LBRACE ID index_attr_list RBRACE
+    {
+      $$ = new ParsedSqlNode(SCF_CREATE_INDEX);
+      CreateIndexSqlNode &create_index = $$->create_index;
+      create_index.index_name = $4;
+      create_index.relation_name = $6;
+      if($9 !=nullptr){
+        $$->create_index.attribute_name_list.swap(*$9);
+      }
+      $$->create_index.attribute_name_list.push_back($8);
+      $$->create_index.isUnique = true;
+      free($4);
+      free($6);
+      free($8);
+      free($9);
     }
     ;
 
@@ -475,20 +497,52 @@ delete_stmt:    /*  delete 语句的语法解析树*/
     }
     ;
 update_stmt:      /*  update 语句的语法解析树*/
-    UPDATE ID SET ID EQ value where 
+    UPDATE ID SET ID EQ value update_rel_list where 
     {
       $$ = new ParsedSqlNode(SCF_UPDATE);
       $$->update.relation_name = $2;
-      $$->update.attribute_name = $4;
-      $$->update.value = *$6;
-      if ($7 != nullptr) {
-        $$->update.conditions.swap(*$7);
-        delete $7;
+      // $$->update.attribute_name = $4;
+      // $$->update.value = *$6;
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $4;
+      r->value = *$6;
+      if($7 != nullptr){
+        $$->update.updateRel_list = *$7;
+      }else{
+        std::vector<UpdateRel>* urel = new std::vector<UpdateRel>;
+        $$->update.updateRel_list = *(urel);
+        delete urel;
+      }
+      $$->update.updateRel_list.emplace_back(*r);
+      delete r;
+      if ($8 != nullptr) {
+        $$->update.conditions.swap(*$8);
+        delete $8;
       }
       free($2);
       free($4);
     }
     ;
+update_rel_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA ID EQ value update_rel_list {
+      if($5 !=nullptr){
+        $$ = $5;
+      }else{
+        $$ = new std::vector<UpdateRel>;
+      }
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $2;
+      r->value = *$4;
+      $$->emplace_back(*r);
+      delete r;
+      free($2);
+      free($4);
+    }
+    ;    
 select_stmt:        /*  select 语句的语法解析树*/
     SELECT select_attr FROM ID rel_list where
     {
@@ -517,7 +571,60 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
+    |SELECT select_attr FROM ID join_list rel_list where
+    {
+      $$ = new ParsedSqlNode(SCF_SELECT);
+      $$->selection.hasAgg = false;
+      if ($2 != nullptr) {
+        $$->selection.attributes.swap(*$2);
+        for(int i = 0; i < $$->selection.attributes.size(); i++){
+          if($$->selection.attributes[i].aggOp != NO_AGGOP){
+            $$->selection.hasAgg = true;
+            break;
+          }
+        }
+        delete $2;
+      }
+      if ($6 != nullptr) {
+        $$->selection.relations.swap(*$6);
+        delete $6;
+      }
+      $$->selection.relations.push_back($4);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+      if ($7 != nullptr) {
+        $$->selection.conditions.swap(*$7);
+        delete $7;
+      }
+      free($4);
+
+      if ($5!=nullptr){
+        $$->selection.conditions.insert($$->selection.conditions.end(),$5->conditions.begin(),$5->conditions.end());
+        $$->selection.relations.insert($$->selection.relations.end(),$5->relations.begin(),$5->relations.end());
+        free($5);
+      }
+    }
     ;
+    join_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | INNER JOIN ID ON condition_list join_list {
+      if ($6 != nullptr) {
+        $$ = $6;
+      } else {
+        $$ = new JoinSqlNode;
+      }
+
+      // $$->push_back($2);
+      // free($2);
+      $$->relations.push_back($3);
+      $$->conditions.insert($$->conditions.end(),$5->begin(),$5->end());
+      free($3);
+      free($5);
+    }
+    ;      
 calc_stmt:
     CALC expression_list
     {

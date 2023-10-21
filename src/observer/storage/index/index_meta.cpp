@@ -22,7 +22,7 @@ See the Mulan PSL v2 for more details. */
 const static Json::StaticString FIELD_NAME("name");
 // const static Json::StaticString FIELD_FIELD_NAME("field_name");
 const static Json::StaticString FIELD_FIELD_NAMES("field_names");
-
+const static Json::StaticString FIELD_FIELD_ISUNIQUE("is_unique"); 
 // RC IndexMeta::init(const char *name, const FieldMeta &field)
 // {
 //   if (common::is_blank(name)) {
@@ -34,7 +34,7 @@ const static Json::StaticString FIELD_FIELD_NAMES("field_names");
 //   field_meta_list_.emplace_back(field);
 //   return RC::SUCCESS;
 // }
-RC IndexMeta::init(const char *name, std::vector<const FieldMeta*> field_meta_list){
+RC IndexMeta::init(const char *name, std::vector<const FieldMeta*> field_meta_list,bool isUnique){
     if (common::is_blank(name)) {
     LOG_ERROR("Failed to init index, name is empty.");
     return RC::INVALID_ARGUMENT;
@@ -45,6 +45,7 @@ RC IndexMeta::init(const char *name, std::vector<const FieldMeta*> field_meta_li
   for (auto field_meta:field_meta_list){
     this->field_name_list_.push_back(field_meta->name());
   }
+  isUnique_ = isUnique;
   return RC::SUCCESS;
 }
 // RC IndexMeta::init(const char *name, std::string field_name)
@@ -65,6 +66,7 @@ RC init(const char *name, std::vector<std::string> field_name_list);
 void IndexMeta::to_json(Json::Value &json_value) const
 {
   json_value[FIELD_NAME] = name_;
+  json_value[FIELD_FIELD_ISUNIQUE] = isUnique_;
   // json_value[FIELD_FIELD_NAME] = field_;
   Json::Value field_names_value;
   for (auto field_meta : field_name_list_) {
@@ -80,13 +82,16 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
 {
   const Json::Value &name_value = json_value[FIELD_NAME];
   Json::Value index_name;
-
+  const Json::Value &isUnique = json_value[FIELD_FIELD_ISUNIQUE];
   const Json::Value &fields_value = json_value[FIELD_FIELD_NAMES];
   if (!name_value.isString()) {
     LOG_ERROR("Index name is not a string. json value=%s", name_value.toStyledString().c_str());
     return RC::INTERNAL;
   }
-
+  if(!isUnique.isBool()){
+    LOG_ERROR("Invalid table meta. fields is not bool, json value=%s", isUnique.toStyledString().c_str());
+    return RC::INTERNAL;
+  }
   if (!fields_value.isArray() || fields_value.size() <= 0) {
     LOG_ERROR("Invalid table meta. fields is not array, json value=%s", fields_value.toStyledString().c_str());
     return RC::INTERNAL;
@@ -103,7 +108,7 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     fields.push_back(field);
   }
 
-  return index.init(name_value.asCString(), fields);
+  return index.init(name_value.asCString(), fields,isUnique.asBool());
 }
 
 const char *IndexMeta::name() const

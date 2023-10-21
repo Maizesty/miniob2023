@@ -21,9 +21,10 @@ See the Mulan PSL v2 for more details. */
 #include "utlis/typecast.h"
 #include "storage/table/table.h"
 #include "string"
-UpdateStmt::UpdateStmt(Table *table, const FieldMeta *field_meta, FilterStmt *filter_stmt, Value *values, int value_amount)
-    : table_(table), field_meta_(field_meta), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
+UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount)
+    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
 {}
+
 
 RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
 {
@@ -33,47 +34,58 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::INVALID_ARGUMENT;
   }
   std::string table_name = update.relation_name;
-  std::string field_name = update.attribute_name;
+  std::vector<UpdateRel> updateRel_list = update.updateRel_list;
   if (common::is_blank(table_name.c_str())) {
     LOG_WARN("invalid argument. relation name is blank.");
     return RC::INVALID_ARGUMENT;
   }
-  if (common::is_blank(field_name.c_str())) {
-    LOG_WARN("invalid argument. update field name is blank.");
-    return RC::INVALID_ARGUMENT;
+  for(UpdateRel uRel: updateRel_list){
+    if (common::is_blank(uRel.attribute_name.c_str())) {
+      LOG_WARN("invalid argument. update field name is blank.");
+      return RC::INVALID_ARGUMENT;
+    }
   }
   Table *table = db->find_table(table_name.c_str());
   if (nullptr == table) {
     LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name.c_str());
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-  const FieldMeta *field_meta = table->table_meta().field(field_name.c_str());
-  if (nullptr == field_meta) {
-    LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name.c_str());
-    return RC::SCHEMA_FIELD_MISSING;
-  }
-  Value      *value = new Value();
-  if(field_meta->type() != update.value.attr_type()){
-    if (field_meta->type() == AttrType::DATES && update.value.attr_type() == AttrType::CHARS) {
-      value->set_date(update.value.get_int32());
-    }else if((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::FLOATS)){
-        value->set_int(round(update.value.get_float()));
-      }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::INTS)){
-        value->set_float((float)(update.value.get_int()));
-      }else if ((field_meta->type() == AttrType::FLOATS && update.value.attr_type() == AttrType::CHARS)){
-        value->set_float(stringToNumber(update.value.get_string()));
-      }else if ((field_meta->type() == AttrType::INTS && update.value.attr_type() == AttrType::CHARS)){
-        value->set_int(round(stringToNumber(update.value.get_string())));
-      }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::INTS)){
-        value->set_string(std::to_string(update.value.get_int()).c_str());
-      }else if ((field_meta->type() == AttrType::CHARS && update.value.attr_type() == AttrType::FLOATS)){
-        value->set_string(std::to_string(update.value.get_float()).c_str());
+  Value * values = new Value[updateRel_list.size()];
+  std::vector<const FieldMeta *> field_metas;
+  for(int i = 0; i < updateRel_list.size(); i++){
+    auto uRel = updateRel_list[i];
+    const FieldMeta *field_meta = table->table_meta().field(uRel.attribute_name.c_str());
+    if (nullptr == field_meta) {
+      LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
+      return RC::SCHEMA_FIELD_MISSING;
+    }
+    Value      *value = new Value();
+    if(field_meta->type() != uRel.value.attr_type()){
+      if (field_meta->type() == AttrType::DATES && uRel.value.attr_type() == AttrType::CHARS) {
+        value->set_date(uRel.value.get_int32());
+      }else if((field_meta->type() == AttrType::INTS && uRel.value.attr_type() == AttrType::FLOATS)){
+          value->set_int(round_ob(uRel.value.get_float()));
+        }else if ((field_meta->type() == AttrType::FLOATS && uRel.value.attr_type() == AttrType::INTS)){
+          value->set_float((float)(uRel.value.get_int()));
+        }else if ((field_meta->type() == AttrType::FLOATS && uRel.value.attr_type() == AttrType::CHARS)){
+          value->set_float(stringToNumber_ob(uRel.value.get_string()));
+        }else if ((field_meta->type() == AttrType::INTS && uRel.value.attr_type() == AttrType::CHARS)){
+          value->set_int(round_ob(stringToNumber_ob(uRel.value.get_string())));
+        }else if ((field_meta->type() == AttrType::CHARS && uRel.value.attr_type() == AttrType::INTS)){
+          value->set_string(std::to_string(uRel.value.get_int()).c_str());
+        }else if ((field_meta->type() == AttrType::CHARS && uRel.value.attr_type() == AttrType::FLOATS)){
+          value->set_string(std::to_string(uRel.value.get_float()).c_str());
+        }else
+        {
+          return RC::INVALID_ARGUMENT;
+        }
       }else
-      {
-        return RC::INVALID_ARGUMENT;
-      }
-  }else
-    value->set_value(update.value);
+        value->set_value(uRel.value);
+      values[i] = *value;
+      field_metas.emplace_back(field_meta);
+  }
+
+
 
   std::unordered_map<std::string, Table *> table_map;
   table_map.insert(std::pair<std::string, Table *>(std::string(table_name), table));
@@ -84,6 +96,6 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
-  stmt = new UpdateStmt(table, field_meta, filter_stmt, value, 1);
+  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size());
   return rc;
 }
