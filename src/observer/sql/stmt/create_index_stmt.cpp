@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
+#include <set>
 
 using namespace std;
 using namespace common;
@@ -48,6 +49,7 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
   std::vector<const FieldMeta *> field_metas;
+  std::set<std::string> name;
   for(std::string attribute_name:create_index.attribute_name_list){  
     const FieldMeta *field_meta = table->table_meta().field(attribute_name.c_str());
     if (nullptr == field_meta) {
@@ -55,6 +57,12 @@ RC CreateIndexStmt::create(Db *db, const CreateIndexSqlNode &create_index, Stmt 
               db->name(), table_name, attribute_name.c_str());
       return RC::SCHEMA_FIELD_NOT_EXIST;   
     }
+    if(name.find(attribute_name) != name.end()){
+      LOG_WARN("duplicate key:%s", 
+               attribute_name.c_str());
+      return RC::INVALID_ARGUMENT;   
+    }
+    name.insert(attribute_name);
     field_metas.push_back(field_meta);
   }
   Index *index = table->find_index(create_index.index_name.c_str());

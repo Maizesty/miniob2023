@@ -822,7 +822,7 @@ RC BplusTreeHandler::create(const char *file_name, AttrType attr_type, int attr_
 int BplusTreeHandler::attr_len(){
   return this->file_header_.attr_len;
 }
-RC BplusTreeHandler::create(const char *file_name,vector<FieldMeta> field_meta_list, int internal_max_size /* = -1*/,
+RC BplusTreeHandler::create(const char *file_name,const std::vector<const FieldMeta*> field_meta_list, int internal_max_size /* = -1*/,
     int leaf_max_size /* = -1 */)
 {
   BufferPoolManager &bpm = BufferPoolManager::instance();
@@ -859,10 +859,10 @@ RC BplusTreeHandler::create(const char *file_name,vector<FieldMeta> field_meta_l
   IndexFileHeader *file_header = (IndexFileHeader *)pdata;
   int attr_length_sum = 0;
   for(int i = 0; i <field_meta_list.size();i++){
-    FieldMeta field_meta = field_meta_list[i];
-    attr_length_sum += field_meta.len();
-    file_header->attr_length[i] = field_meta.len();
-    file_header->attr_type[0] = field_meta.type();
+    const FieldMeta *field_meta  = field_meta_list[i];
+    attr_length_sum += field_meta->len();
+    file_header->attr_length[i] = field_meta->len();
+    file_header->attr_type[0] = field_meta->type();
     file_header->nums++;
   }
   if (internal_max_size < 0) {
@@ -892,8 +892,8 @@ RC BplusTreeHandler::create(const char *file_name,vector<FieldMeta> field_meta_l
     return RC::NOMEM;
   }
 
-  key_comparator_.init(file_header->attr_type[0], file_header->attr_length[0]);
-  key_printer_.init(file_header->attr_type[0], file_header->attr_length[0]);
+  key_comparator_.init(field_meta_list);
+  key_printer_.init(field_meta_list);
 
   this->sync();
 

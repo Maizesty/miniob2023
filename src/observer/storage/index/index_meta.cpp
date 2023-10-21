@@ -41,7 +41,10 @@ RC IndexMeta::init(const char *name, std::vector<const FieldMeta*> field_meta_li
   }
 
   name_ = name;
-  field_meta_list_.swap(field_meta_list);
+  // field_meta_list_.swap(field_meta_list);
+  for (auto field_meta:field_meta_list){
+    this->field_name_list_.push_back(field_meta->name());
+  }
   return RC::SUCCESS;
 }
 // RC IndexMeta::init(const char *name, std::string field_name)
@@ -64,10 +67,10 @@ void IndexMeta::to_json(Json::Value &json_value) const
   json_value[FIELD_NAME] = name_;
   // json_value[FIELD_FIELD_NAME] = field_;
   Json::Value field_names_value;
-  for (auto field_meta : field_meta_list_) {
+  for (auto field_meta : field_name_list_) {
     Json::Value field_name_value;
     // index.to_json(index_value);
-    field_name_value = field_meta->name();
+    field_name_value =field_meta;
     field_names_value.append(field_name_value);
   }
   json_value[FIELD_FIELD_NAMES] = field_names_value;
@@ -110,27 +113,27 @@ const char *IndexMeta::name() const
 
 const char *IndexMeta::field(int index) const
 {
-  if (index > field_meta_list_.size()){
+  if (index > field_name_list_.size()){
     return "";
   }
-  return field_meta_list_[index]->name();
+  return field_name_list_[index].c_str();
 }
 
 const char *IndexMeta::fields() const{
-  std::string *result = new std::string(field_meta_list_[0]->name());
-  for(int i = 1; i < field_meta_list_.size(); i++){
-    *result+=", "+ std::string(field_meta_list_[i]->name());
+  std::string *result = new std::string(field_name_list_[0]);
+  for(int i = 1; i < field_name_list_.size(); i++){
+    *result+=", "+ field_name_list_[i];
   }
   return result->c_str();
 }
-std::vector<const FieldMeta*> IndexMeta::field_meta_list() const{
-  return field_meta_list_;
-}
+// std::vector<const FieldMeta*> IndexMeta::field_meta_list() const{
+//   return field_meta_list_;
+// }
 
 void IndexMeta::desc(std::ostream &os) const
 {
   os << "index name=" << name_ ;
-  for(auto field_meta : field_meta_list_){
-    os << ", field=" << field_meta->name();
+  for(auto field_meta : field_name_list_){
+    os << ", field=" << field_meta;
   }
 }

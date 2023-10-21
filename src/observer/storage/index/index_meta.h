@@ -42,9 +42,10 @@ public:
   const char *name() const;
   const char *field(int index=0) const;
   const char *fields() const;
-  std::vector<const FieldMeta*>  field_meta_list() const;
+  // std::vector<const FieldMeta*>  field_meta_list() const;
   void desc(std::ostream &os) const;
-
+  std::vector<std::string> field_name_list() const{return field_name_list_;}
+  int size() const {return field_name_list_.size();}
 public:
   void to_json(Json::Value &json_value) const;
   static RC from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index);
@@ -53,6 +54,6 @@ protected:
   std::string name_;   // index's name
   //从原来单字段改成多字段同时先对原生但字段进行支持
   // std::string field_;  // field's name
-  // std::vector<std::string> field_name_list_;
-  std::vector<const FieldMeta*> field_meta_list_;
+  std::vector<std::string> field_name_list_;
+  // std::vector<const FieldMeta*> field_meta_list_;
 };

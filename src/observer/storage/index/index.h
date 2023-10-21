@@ -78,10 +78,13 @@ public:
    * 
    */
   virtual RC sync() = 0;
+  int index_size(){
+    return field_meta_list_.size();
+  }
 
 protected:
   RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);
-  RC init(const IndexMeta &index_meta, std::vector<FieldMeta> field_meta_list);
+  RC init(const IndexMeta &index_meta, const std::vector<const FieldMeta*> &field_meta_list);
 
 protected:
   IndexMeta index_meta_;  ///< 索引的元数据

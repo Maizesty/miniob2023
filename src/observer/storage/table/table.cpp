@@ -191,8 +191,9 @@ RC Table::open(const char *meta_file, const char *base_dir)
   const int index_num = table_meta_.index_num();
   for (int i = 0; i < index_num; i++) {
     const IndexMeta *index_meta = table_meta_.index(i);
-    std::vector<FieldMeta> field_meta_list;
-    for(auto field_meta : index_meta->field_meta_list()){
+    std::vector<const FieldMeta*> field_metas;
+    for(auto field_name : index_meta->field_name_list()){
+      const FieldMeta *field_meta = table_meta_.field(field_name.c_str());
       if (field_meta == nullptr) {
         LOG_ERROR("Found invalid index meta info which has a non-exists field. table=%s, index=%s, field=%s",
                   name(), index_meta->name(), index_meta->field());
@@ -200,12 +201,12 @@ RC Table::open(const char *meta_file, const char *base_dir)
         //  do all cleanup action in destructive Table function
         return RC::INTERNAL;
       }
-      field_meta_list.push_back(FieldMeta(*field_meta));
+      field_metas.push_back(field_meta);
     }
     //TODO
     BplusTreeIndex *index = new BplusTreeIndex();
     std::string index_file = table_index_file(base_dir, name(), index_meta->name());
-    rc = index->open(index_file.c_str(), *index_meta, field_meta_list);
+    rc = index->open(index_file.c_str(), *index_meta, field_metas);
     if (rc != RC::SUCCESS) {
       delete index;
       LOG_ERROR("Failed to open index. table=%s, index=%s, file=%s, rc=%s",
@@ -409,11 +410,8 @@ RC Table::create_index(Trx *trx, std::vector<const FieldMeta*> field_meta_list, 
   // 创建索引相关数据
   BplusTreeIndex *index = new BplusTreeIndex();
   std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
-  std::vector<FieldMeta> field_meta_list__;
-  for(auto field_meta : field_meta_list){
-    field_meta_list__.push_back(*field_meta);
-  }
-  rc = index->create(index_file.c_str(), new_index_meta,field_meta_list__ );
+
+  rc = index->create(index_file.c_str(), new_index_meta,field_meta_list);
   if (rc != RC::SUCCESS) {
     delete index;
     LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
@@ -502,20 +500,19 @@ RC Table::delete_record(const Record &record)
   return rc;
 }
 
-RC Table::update_record(const Record &record,Record &newRecord)
+RC Table::update_record(Record &record,Record &newRecord)
 {
   //目前思路先删后插入
   RC rc = RC::SUCCESS;
-  for (Index *index : indexes_) {
-    rc = index->delete_entry(record.data(), &record.rid());
-    ASSERT(RC::SUCCESS == rc, 
-           "failed to delete entry from index. table name=%s, index name=%s, rid=%s, rc=%s",
-           name(), index->index_meta().name(), record.rid().to_string().c_str(), strrc(rc));
+  rc = delete_entry_of_indexes(record.data(), record.rid(),false);
+  if (rc != RC::SUCCESS){
+    LOG_ERROR("Failed to delete entry of indexes");
+    return rc;
   }
-  rc = record_handler_->delete_record(&record.rid());
   if(rc!=RC::SUCCESS)
     return rc;
-  rc=insert_record(newRecord);
+  record.set_data(newRecord.data());
+  rc=insert_entry_of_indexes(record.data(), record.rid());
   if(rc!=RC::SUCCESS)
     return rc;
   // for (Index *index : indexes_) {
@@ -526,6 +523,7 @@ RC Table::update_record(const Record &record,Record &newRecord)
   // }
   // rc = record_handler_->delete_record(&record.rid());
   // return rc;
+  rc = record_handler_->update_record(&record);
   return rc;
 }
 
@@ -558,6 +556,9 @@ RC Table::delete_entry_of_indexes(const char *record, const RID &rid, bool error
 Index *Table::find_index(const char *index_name) const
 {
   for (Index *index : indexes_) {
+    if(index->index_size() > 1){
+      continue;
+    }
     if (0 == strcmp(index->index_meta().name(), index_name)) {
       return index;
     }

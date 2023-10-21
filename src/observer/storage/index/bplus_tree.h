@@ -109,10 +109,10 @@ public:
     attr_comparators_.push_back(attr_comparator_);
   }
 
-  void init(vector<FieldMeta> field_meta_list)
+  void init(const std::vector<const FieldMeta*>  field_meta_list)
   {
-    for(FieldMeta fieldMeta : field_meta_list){
-      this->init(fieldMeta.type(),fieldMeta.len());
+    for(const FieldMeta* fieldMeta : field_meta_list){
+      this->init(fieldMeta->type(),fieldMeta->len());
     }
   }
 
@@ -226,10 +226,10 @@ public:
     attr_printers_.push_back(attr_printer_);
   }
 
-  void init(vector<FieldMeta> field_meta_list)
+  void init(const std::vector<const FieldMeta*>  field_meta_list)
   {
-    for(FieldMeta fieldMeta : field_meta_list){
-      this->init(fieldMeta.type(),fieldMeta.len());
+    for(const FieldMeta* fieldMeta : field_meta_list){
+      this->init(fieldMeta->type(),fieldMeta->len());
     }
   }
   const AttrPrinter &attr_printer(int index =0) const
@@ -525,7 +525,7 @@ public:
             int leaf_max_size = -1);
 
   RC create(const char *file_name, 
-            vector<FieldMeta> field_meta_list,
+           const std::vector<const FieldMeta*>,
             int internal_max_size = -1, 
             int leaf_max_size = -1);
   /**
