@@ -467,6 +467,7 @@ update_stmt:      /*  update 语句的语法解析树*/
       }else{
         std::vector<UpdateRel>* urel = new std::vector<UpdateRel>;
         $$->update.updateRel_list = *(urel);
+        delete urel;
       }
       $$->update.updateRel_list.emplace_back(*r);
       delete r;
