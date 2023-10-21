@@ -279,7 +279,7 @@ RC PhysicalPlanGenerator::create_plan(DeleteLogicalOperator &delete_oper, unique
 RC PhysicalPlanGenerator::create_plan(UpdateLogicalOperator &update_oper, std::unique_ptr<PhysicalOperator> &oper){
   Table *table = update_oper.table();
   vector<Value> &values = update_oper.values();
-  vector<const FieldMeta> &field_metas = update_oper.field_metas();
+  vector<const FieldMeta *> field_metas = update_oper.field_metas();
   vector<unique_ptr<LogicalOperator>> &child_opers = update_oper.children();
 
   unique_ptr<PhysicalOperator> child_physical_oper;

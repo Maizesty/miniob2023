@@ -461,13 +461,14 @@ update_stmt:      /*  update 语句的语法解析树*/
       // $$->update.value = *$6;
       UpdateRel *r = new UpdateRel();
       r->attribute_name = $4;
-      r->value = $6;
+      r->value = *$6;
       if($7 != nullptr){
-        $$.update->updateRel_list = $7;
+        $$->update.updateRel_list = *$7;
       }else{
-        $$.update->updateRel_list = new std::vector<UpdateRel>;
+        std::vector<UpdateRel>* urel = new std::vector<UpdateRel>;
+        $$->update.updateRel_list = *(urel);
       }
-      $$.update->updateRel_list.emplace(*r);
+      $$->update.updateRel_list.emplace_back(*r);
       delete r;
       if ($8 != nullptr) {
         $$->update.conditions.swap(*$8);
@@ -490,7 +491,7 @@ update_rel_list:
       }
       UpdateRel *r = new UpdateRel();
       r->attribute_name = $2;
-      r->value = $4;
+      r->value = *$4;
       $$->emplace_back(*r);
       delete r;
       free($2);

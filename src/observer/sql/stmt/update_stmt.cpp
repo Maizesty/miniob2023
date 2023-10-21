@@ -19,8 +19,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/db/db.h"
 #include "storage/field/field_meta.h"
 #include "storage/table/table.h"
-UpdateStmt::UpdateStmt(Table *table, const FieldMeta *field_meta, FilterStmt *filter_stmt, Value *values, int value_amount)
-    : table_(table), field_meta_(field_meta), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
+UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount)
+    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
 {}
 
 RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
@@ -51,8 +51,8 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  Value * values = new Value[UpdateRel_list.size()];
-  FieldMeta * field_metas = new FieldMeta[UpdateRel_list.size()];
+  Value * values = new Value[updateRel_list.size()];
+  std::vector<const FieldMeta *> field_metas;
   for(int i = 0; i < updateRel_list.size(); i++){
     const FieldMeta *field_meta = table->table_meta().field(updateRel_list[i].attribute_name.c_str());
     if (nullptr == field_meta) {
@@ -65,8 +65,8 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     } else {
       value->set_value(updateRel_list[i].value);
     }
-    values[i] = value;
-    field_metas[i] = field_meta;
+    values[i] = *value;
+    field_metas.emplace_back(field_meta);
   }
   
   std::unordered_map<std::string, Table *> table_map;
@@ -78,6 +78,6 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
-  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, UpdateRel_list.size());
+  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size());
   return rc;
 }

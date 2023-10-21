@@ -9,8 +9,8 @@
 
 using namespace std;
 
-UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,vector<const FieldMeta> field_meta)
-    : table_(table), values_(std::move(values)), field_metas_(field_meta)
+UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,vector<const FieldMeta *> &&field_metas)
+    : table_(table), values_(std::move(values)), field_metas_(field_metas)
 {}
 RC UpdatePhysicalOperator::open(Trx *trx)
 {

@@ -233,7 +233,7 @@ RC LogicalPlanGenerator::create_plan(
 {
   Table *table = update_stmt->table();
   vector<Value> values(update_stmt->values(), update_stmt->values() + update_stmt->value_amount());
-  vector<const FieldMeta> field_metas(update_stmt->field_meta(), update_stmt->field_meta() + update_stmt->value_amount());
+  vector<const FieldMeta *> field_metas = update_stmt->field_metas();
   FilterStmt *filter_stmt = update_stmt->filter_stmt();
   std::vector<Field> fields;
   for (int i = table->table_meta().sys_field_num(); i < table->table_meta().field_num(); i++) {
