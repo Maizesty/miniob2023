@@ -181,6 +181,14 @@ public:
 
     FieldExpr *field_expr = speces_[index];
     const FieldMeta *field_meta = field_expr->field().meta();
+    int i = 3- field_meta->index()/8, byte = field_meta->index()%8;
+    char bitmap[4];
+    memcpy(bitmap,record_->data(),4);
+    if(bitmap[i]&(0x1 << byte)){
+      cell.set_null();
+      return RC::SUCCESS;
+    }
+    // cell.set_isNull(false);
     cell.set_type(field_meta->type());
     cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
     return RC::SUCCESS;

@@ -59,8 +59,16 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
       LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
       return RC::SCHEMA_FIELD_MISSING;
     }
+    if(uRel.value.isNull() && !field_meta->isNullable()){
+      LOG_WARN("can not update not null col with null");
+      return RC::INTERNAL;
+    }
+
     Value      *value = new Value();
-    if(field_meta->type() != uRel.value.attr_type()){
+    if(uRel.value.isNull() && field_meta->isNullable()){
+        value->set_null();
+    }else{
+      if(field_meta->type() != uRel.value.attr_type()){
       if (field_meta->type() == AttrType::DATES && uRel.value.attr_type() == AttrType::CHARS) {
         value->set_date(uRel.value.get_int32());
       }else if((field_meta->type() == AttrType::INTS && uRel.value.attr_type() == AttrType::FLOATS)){
@@ -81,6 +89,7 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
         }
       }else
         value->set_value(uRel.value);
+    }
       values[i] = *value;
       field_metas.emplace_back(field_meta);
   }

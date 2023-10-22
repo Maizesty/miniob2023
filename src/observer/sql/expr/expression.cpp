@@ -91,6 +91,27 @@ RC ComparisonExpr::compare_value(const Value &left, const Value &right, bool &re
 {
   RC rc = RC::SUCCESS;
   result = false;
+  //非 is,is not op且有一个为空就返回false
+  if((comp_ != IS_TO && comp_ != NOT_IS) && ((left.isNull()||right.isNull()))){
+    result = false;
+    return rc;
+  }
+  if(comp_ == IS_TO)
+  {
+    if(left.isNull()&&right.isNull())
+      result = true;
+    else
+      result = false;
+    return rc;
+  }
+  if(comp_ == NOT_IS){
+    if(left.isNull()&&right.isNull())
+      result = false;
+    else
+      result = true;
+    return rc;
+  }
+
   if(comp_ == LIKE_WITH){
     result = (1 == left.compare_like(right));
     return rc;

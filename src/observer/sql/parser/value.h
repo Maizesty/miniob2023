@@ -29,6 +29,7 @@ enum AttrType
   FLOATS,         ///< 浮点数类型(4字节)
   BOOLEANS,       ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
   DATES,
+  NULLS
 };
 
 const char *attr_type_to_string(AttrType type);
@@ -41,7 +42,8 @@ AttrType attr_type_from_string(const char *s);
 class Value 
 {
 public:
-  Value() = default;
+  Value(){
+  }
 
   Value(AttrType attr_type, char *data, int length = 4) : attr_type_(attr_type)
   {
@@ -72,10 +74,10 @@ public:
   void set_value(const Value &value);
   void set_date(int32_t date);
   std::string to_string() const;
-
+  void set_null();
   int compare(const Value &other) const;
   int compare_like(const Value &other) const;
-
+  bool isNull() const { return attr_type_ == NULLS;}
   const char *data() const;
   int length() const
   {
@@ -86,6 +88,8 @@ public:
   {
     return attr_type_;
   }
+
+
 
 public:
   /**

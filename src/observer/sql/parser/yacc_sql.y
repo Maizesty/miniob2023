@@ -108,6 +108,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         INNER 
         JOIN
         UNIQUE
+        NULL_T
+        IS
+        NULLABLE
+
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
   ParsedSqlNode *                   sql_node;
@@ -381,6 +385,7 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = $4;
+      $$->isNullable = false;
       free($1);
     }
     | ID type
@@ -389,6 +394,45 @@ attr_def:
       $$->type = (AttrType)$2;
       $$->name = $1;
       $$->length = 4;
+      $$->isNullable = false;
+      free($1);
+    }
+        |
+    ID type LBRACE number RBRACE NOT_COMP NULL_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->isNullable = false;
+      free($1);
+    }
+    | ID type NOT_COMP NULL_T
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->isNullable = false;
+      free($1);
+    }
+    |
+    ID type LBRACE number RBRACE NULLABLE
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = $4;
+      $$->isNullable = true;
+      free($1);
+    }
+    | ID type  NULLABLE
+    {
+      $$ = new AttrInfoSqlNode;
+      $$->type = (AttrType)$2;
+      $$->name = $1;
+      $$->length = 4;
+      $$->isNullable = true;
       free($1);
     }
     ;
@@ -481,6 +525,10 @@ value:
       char *tmp = common::substr($1,1,strlen($1)-2);
       $$ = new Value(tmp);
       free(tmp);
+    }
+    |NULL_T {
+      $$ = new Value();
+      $$->set_null();
     }
     ;
     
@@ -853,6 +901,9 @@ comp_op:
     | NE { $$ = NOT_EQUAL; }
     | NOT_COMP LIKE_COMP { $$ = NOT_LIKE_WITH; }
     | LIKE_COMP { $$ = LIKE_WITH; }
+    | IS NOT_COMP    { $$ = NOT_IS; }
+    | IS        { $$ = IS_TO; }
+
     ;
 agg_op:
       MAX_AGG { $$ = MAX_AGGOP; }

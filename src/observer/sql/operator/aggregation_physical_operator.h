@@ -58,4 +58,5 @@ private:
   std::vector<Field> fields_;
   std::vector<Value> result_;
   std::vector<int> index_;
+  std::vector<bool> isFirst_;
 };

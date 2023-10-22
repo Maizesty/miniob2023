@@ -143,7 +143,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
   }else{
     right_type=filter_unit->right().value.attr_type();
   }
-  if(left_type==AttrType::UNDEFINED||right_type==AttrType::UNDEFINED){
+  if((left_type==AttrType::UNDEFINED )||right_type==AttrType::UNDEFINED){
     LOG_WARN("invalid compare value : %d,%d", left_type,right_type);
     return RC::INVALID_ARGUMENT;
   }

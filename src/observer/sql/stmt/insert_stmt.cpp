@@ -63,6 +63,15 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
       const FieldMeta *field_meta = table_meta.field(i + sys_field_num);
       const AttrType field_type = field_meta->type();
       const AttrType value_type = values[i].attr_type();
+      if(values[i].isNull() && !field_meta->isNullable()){
+        LOG_ERROR("can not insert null into not null col");
+        return RC::INTERNAL;
+      }
+      if(values[i].isNull()){
+        Value v(NULLS,"nil",4);
+        values[i]=v;
+        continue;
+      }
       if (field_type != value_type) { 
           // TODO try to convert the value type to field type
           if(!(field_type == AttrType::DATES && value_type == AttrType::CHARS)){

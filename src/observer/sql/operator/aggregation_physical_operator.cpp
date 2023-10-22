@@ -6,6 +6,7 @@
 #include "storage/record/record.h"
 #include "storage/table/table.h"
 #include <cstring>
+#include <vector>
 #include "common/lang/comparator.h"
 
 RC AggregationPhysicalOperator::open(Trx *trx)
@@ -22,6 +23,7 @@ RC AggregationPhysicalOperator::open(Trx *trx)
   }
   
   for(AggField agg_field : agg_fields_){
+    this->isFirst_.push_back(true);
     if(agg_field.is_star()){
       Value value (0);
       result_.push_back(value);
@@ -45,18 +47,22 @@ RC AggregationPhysicalOperator::open(Trx *trx)
     }
     if(attrType == CHARS){
       Value value ("");
+      value.set_null();
       result_.push_back(value);
     }
     if(attrType == INTS){
       Value value(0);
+      value.set_null();
       result_.push_back(value);
     }
     if(attrType == FLOATS){
       Value value((float)0);
+      value.set_null();
       result_.push_back(value);
     }
     if(attrType == DATES){
       Value value("");
+      value.set_null();
       result_.push_back(value);
     }
   }
@@ -71,6 +77,7 @@ RC AggregationPhysicalOperator::next()
   }
   PhysicalOperator *child = children_[0].get();
   int count = 0;
+  std::vector<int> counts(agg_fields_.size());
   bool hasOutput = false;
   bool isFirst = true;
   while (RC::SUCCESS == (rc = child->next())) {
@@ -84,26 +91,37 @@ RC AggregationPhysicalOperator::next()
     count++;
     ProjectTuple *row_tuple = static_cast<ProjectTuple *>(tuple);
     for(int i =0; i <agg_fields_.size(); i++){
-      if(agg_fields_[i].aggOp() == COUNT_AGGOP){
-        result_[i].set_int(result_[i].get_int()+1);
-        continue;
-      }
       int index = index_[i];
       Value v;
       row_tuple->cell_at(index,v);
+      if(agg_fields_[i].aggOp() == COUNT_AGGOP){
+        if(agg_fields_[i].is_star() || !v.isNull()){
+          result_[i].set_int(result_[i].get_int()+1);
+          continue;
+        }
+      }
+      if(!v.isNull())
+        counts[i]++;
       if(agg_fields_[i].attr_type() == INTS){
         int tmp = result_[i].get_int();
+        if(v.isNull()){
+          continue;
+        }
+
         int cell_value = v.get_int();
         switch (agg_fields_[i].aggOp())
         {
         case MAX_AGGOP:
-          if(isFirst)
+        {
+          if(isFirst_[i])
             result_[i].set_int(cell_value);
           else
             result_[i].set_int(tmp > cell_value ? tmp : cell_value);
           break;
+        }
+
         case MIN_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_int(cell_value);
           else
             result_[i].set_int(tmp < cell_value ? tmp : cell_value);
@@ -115,20 +133,24 @@ RC AggregationPhysicalOperator::next()
         default:
           break;
         }
+        isFirst_[i] = false;
       }
       if (agg_fields_[i].attr_type() == FLOATS){
         float tmp = result_[i].get_float();
+        if(v.isNull()){
+          continue;
+        }
         float cell_value = v.get_float();
         switch (agg_fields_[i].aggOp())
         {
         case MAX_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_int(cell_value);
           else
             result_[i].set_int(tmp > cell_value ? tmp : cell_value);
           break;
         case MIN_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_int(cell_value);
           else
             result_[i].set_int(tmp < cell_value ? tmp : cell_value);
@@ -140,20 +162,23 @@ RC AggregationPhysicalOperator::next()
         default:
           break;
         }
+        isFirst_[i] = false;
       }
       if (agg_fields_[i].attr_type() == DATES){
         int32_t tmp = result_[i].get_int32();
+        if(v.isNull())
+          continue;
         int32_t cell_value = v.get_int32();
         switch (agg_fields_[i].aggOp())
         {
         case MAX_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_date(cell_value);
           else
             result_[i].set_date(tmp > cell_value ? tmp : cell_value);
           break;
         case MIN_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_date(cell_value);
           else
             result_[i].set_date(tmp < cell_value ? tmp : cell_value);
@@ -161,21 +186,24 @@ RC AggregationPhysicalOperator::next()
         default:
           break;
         }
+        isFirst_[i] = false;
       }
       if (agg_fields_[i].attr_type() == CHARS){
         std::string tmp = result_[i].get_string();
+        if(v.isNull())
+          continue;
         std::string cell_value = v.get_string();
         int r = common::compare_string((void *)tmp.c_str(),tmp.length(),(void *)cell_value.c_str(),cell_value.length());
         switch (agg_fields_[i].aggOp())
         {
         case MAX_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_string(cell_value.c_str());
           else
             result_[i].set_string(r > 0  ? tmp.c_str() : cell_value.c_str());
           break;
         case MIN_AGGOP:
-          if(isFirst)
+          if(isFirst_[i])
             result_[i].set_string(cell_value.c_str());
           else
           result_[i].set_string(r < 0? tmp.c_str() : cell_value.c_str());
@@ -184,16 +212,16 @@ RC AggregationPhysicalOperator::next()
           break;
         }
       }
+      isFirst_[i] = false;
       }
-      isFirst = false;
     }
       for(int i =0; i <agg_fields_.size(); i++){
         if(agg_fields_[i].aggOp() == AVG_AGGOP){
-          if(agg_fields_[i].attr_type() == INTS){
-            result_[i].set_float(1.0*result_[i].get_int()/count);
+          if(agg_fields_[i].attr_type() == INTS && !result_[i].isNull()){
+            result_[i].set_float(1.0*result_[i].get_int()/counts[i]);
           }
-          if(agg_fields_[i].attr_type() == FLOATS){
-            result_[i].set_float(result_[i].get_float()/count);
+          if(agg_fields_[i].attr_type() == FLOATS && !result_[i].isNull()){
+            result_[i].set_float(result_[i].get_float()/counts[i]);
           }
         }
       }

@@ -194,6 +194,9 @@ std::string Value::to_string() const
     case DATES:{
       os << date_to_string(num_value_.date_value_);
     }break;
+    case NULLS:{
+      os << "NULL";
+    }break;
     default: {
       LOG_WARN("unsupported attr type: %d", attr_type_);
     } break;
@@ -203,6 +206,13 @@ std::string Value::to_string() const
 
 int Value::compare(const Value &other) const
 {
+  if(this->attr_type_ == NULLS){
+    return -1;
+  }
+  if(other.attr_type_ == NULLS)
+  {
+    return 1;
+  }
   if (this->attr_type_ == other.attr_type_) {
     switch (this->attr_type_) {
       case INTS: {
@@ -388,4 +398,7 @@ bool Value::get_boolean() const
     }
   }
   return false;
+}
+void Value::set_null(){
+  attr_type_ = NULLS;
 }
