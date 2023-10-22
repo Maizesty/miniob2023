@@ -244,7 +244,8 @@ int Value::compare(const Value &other) const
     return common::compare_float((void *)&this_data, (void *)&other.num_value_.float_value_);
   } if (this->attr_type_ == CHARS && other.attr_type_ == INTS) {
     float this_data = stringToNumber_ob(this->str_value_);
-    return common::compare_float((void *)&this_data, (void *)&other.num_value_.float_value_);
+    float other_data = other.num_value_.int_value_;
+    return common::compare_float((void *)&this_data, (void *)&other_data);
   }
   LOG_WARN("not supported");
   return -1;  // TODO return rc?
