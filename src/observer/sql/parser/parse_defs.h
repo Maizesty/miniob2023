@@ -66,9 +66,20 @@ enum CompOp
   NOT_LIKE_WITH,
   IS_TO,
   NOT_IS,
+  IN_THE,
+  NOT_IN,
+  EXISTS_IN,
+  NOT_EXISTS,
   NO_OP
 };
 
+enum ConditionType{
+  CONDITION_ATTR,
+  CONDITION_VALUE,
+  CONDITION_VALUELIST,
+  CONDTITION_SUBQUERY
+};
+struct SelectSqlNode;
 /**
  * @brief 表示一个条件比较
  * @ingroup SQLParser
@@ -81,11 +92,17 @@ struct ConditionSqlNode
 {
   int             left_is_attr;    ///< TRUE if left-hand side is an attribute
                                    ///< 1时，操作符左边是属性名，0时，是属性值
+  ConditionType   left_type;                                 
   Value           left_value;      ///< left-hand side value if left_is_attr = FALSE
+  std::vector<Value>  left_value_list;
+  SelectSqlNode*   left_sub_query;
   RelAttrSqlNode  left_attr;       ///< left-hand side attribute
   CompOp          comp;            ///< comparison operator
   int             right_is_attr;   ///< TRUE if right-hand side is an attribute
                                    ///< 1时，操作符右边是属性名，0时，是属性值
+  std::vector<Value>  right_value_list;
+  SelectSqlNode*   right_sub_query;
+  ConditionType   right_type;
   RelAttrSqlNode  right_attr;      ///< right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value           right_value;     ///< right-hand side value if right_is_attr = FALSE
 };

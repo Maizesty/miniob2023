@@ -111,7 +111,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         NULL_T
         IS
         NULLABLE
-
+        IN
+        EXISTS
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
   ParsedSqlNode *                   sql_node;
@@ -865,7 +866,9 @@ condition:
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 1;
+      $$->left_type = CONDITION_ATTR;
       $$->left_attr = *$1;
+      $$->right_type = CONDITION_VALUE;
       $$->right_is_attr = 0;
       $$->right_value = *$3;
       $$->comp = $2;
@@ -878,7 +881,9 @@ condition:
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
       $$->left_value = *$1;
+      $$->left_type = CONDITION_VALUE;
       $$->right_is_attr = 0;
+      $$->right_type = CONDITION_VALUE;
       $$->right_value = *$3;
       $$->comp = $2;
 
@@ -890,18 +895,56 @@ condition:
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 1;
       $$->left_attr = *$1;
+      $$->left_type = CONDITION_ATTR;
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
+      $$->right_type = CONDITION_ATTR;
       $$->comp = $2;
 
       delete $1;
       delete $3;
+    }
+    | value comp_op LBRACE value value_list RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->left_type = CONDITION_VALUE;
+      $$->right_type = CONDITION_VALUELIST;
+      $$->right_is_attr = 0;
+      if($4 != nullptr){
+        $$->right_value_list.swap(*$4);
+      }
+      $$->right_value_list.emplace_back(*$4);
+      $$->comp = $2;
+
+      delete $1;
+      delete $4;
+    }
+    | rel_attr comp_op LBRACE value value_list RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->left_type = CONDITION_ATTR;
+      $$->right_type = CONDITION_VALUELIST;
+      $$->right_is_attr = 0;
+      if($4 != nullptr){
+        $$->right_value_list.swap(*$4);
+      }
+      $$->right_value_list.emplace_back(*$4);
+      $$->comp = $2;
+
+      delete $1;
+      delete $4;
     }
     | value comp_op rel_attr
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
       $$->left_value = *$1;
+      $$->left_type = CONDITION_VALUE;
+      $$->right_type = CONDITION_ATTR;
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
       $$->comp = $2;
@@ -922,7 +965,10 @@ comp_op:
     | LIKE_COMP { $$ = LIKE_WITH; }
     | IS NOT_COMP    { $$ = NOT_IS; }
     | IS        { $$ = IS_TO; }
-
+    | IN        { $$ = IN_THE;}
+    | NOT_COMP IN    { $$ = NOT_IN;}
+    | EXISTS          { $$ = EXISTS_IN;}
+    | NOT_COMP  EXISTS { $$ = NOT_EXISTS ;}
     ;
 agg_op:
       MAX_AGG { $$ = MAX_AGGOP; }
