@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
+#include "storage/field/order_field.h"
 
 class FieldMeta;
 class FilterStmt;
@@ -57,9 +58,14 @@ public:
   {
     return filter_stmt_;
   }
-
+  const std::vector<OrderFiled> &order_fileds() const
+  {
+    return order_fileds_;
+  }
 private:
   std::vector<Field> query_fields_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
+  std::vector<OrderFiled> order_fileds_;
+
 };

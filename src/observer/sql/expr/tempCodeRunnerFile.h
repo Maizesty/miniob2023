@@ -1,0 +1,1 @@
+    const TupleCellSpec *spec = speces_[index];

@@ -111,7 +111,12 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         NULL_T
         IS
         NULLABLE
-
+        IN
+        EXISTS
+        ORDER
+        BY
+        ASC
+        
 /** union 中定义各种数据类型，真实生成的代码也是union类型，所以不能有非POD类型的数据 **/
 %union {
   ParsedSqlNode *                   sql_node;
@@ -135,6 +140,8 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
   std::vector<std::string> *         index_attrs;
   JoinSqlNode *                     join_list;
   std::vector<UpdateRel> *          update_rel_list;
+  OrderByNode *                     order_by_node;
+  std::vector<OrderByNode>   *       order_by_node_list;
 }
 
 %token <number> NUMBER
@@ -189,6 +196,9 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <index_attrs>         index_attr_list
 %type <join_list>           join_list
 %type <update_rel_list>     update_rel_list
+%type <order_by_node>       order_attr
+%type <order_by_node_list>  order_attr_list
+%type <order_by_node_list>  order_stmt
 %left '+' '-'
 %left '*' '/'
 %nonassoc UMINUS
@@ -611,7 +621,7 @@ update_rel_list:
     }
     ;    
 select_stmt:        /*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where
+    SELECT select_attr FROM ID rel_list where order_stmt
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       $$->selection.hasAgg = false;
@@ -638,7 +648,7 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
-    |SELECT select_attr FROM ID join_list rel_list where
+    |SELECT select_attr FROM ID join_list rel_list where order_stmt
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       $$->selection.hasAgg = false;
@@ -662,6 +672,10 @@ select_stmt:        /*  select 语句的语法解析树*/
       if ($7 != nullptr) {
         $$->selection.conditions.swap(*$7);
         delete $7;
+      }
+      if($8!= nullptr){
+        $$->selection.order_by_node_list.swap(*$8);
+        delete $8;
       }
       free($4);
 
@@ -844,6 +858,62 @@ where:
       $$ = $2;  
     }
     ;
+order_stmt:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | ORDER BY order_attr order_attr_list {
+        if($4!=nullptr){
+          $$ = $4;
+        }else{
+          $$ = new vector<OrderByNode>;
+        }
+        $$->emplace_back(*$3);
+        std::reverse($$->begin(), $$->end());
+        delete $3;
+    }
+    ;
+order_attr:
+  rel_attr
+  {
+    $$ = new OrderByNode;
+    $$->rel = *$1;
+    $$->orderByType = ASC_TYPE;
+    delete $1;
+  }
+  |
+  rel_attr ASC
+  {
+    $$ = new OrderByNode;
+    $$->rel = *$1;
+    $$->orderByType = ASC_TYPE;
+    delete $1;
+  }
+  |
+  rel_attr DESC
+  {
+    $$ = new OrderByNode;
+    $$->rel = *$1;
+    $$->orderByType = DESC_TYPE;
+    delete $1;
+  }
+  ;
+order_attr_list:
+    /* empty */
+    {
+      $$ = nullptr;
+    }
+    | COMMA order_attr order_attr_list {
+      if($3 != nullptr){
+        $$ = $3;
+      }else{
+        $$ = new vector<OrderByNode>;
+      }
+      $$->emplace_back(*$2);
+      delete $2;
+    }
+    ;  
 condition_list:
     /* empty */
     {
@@ -865,7 +935,9 @@ condition:
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 1;
+      // $$->left_type = CONDITION_ATTR;
       $$->left_attr = *$1;
+      // $$->right_type = CONDITION_VALUE;
       $$->right_is_attr = 0;
       $$->right_value = *$3;
       $$->comp = $2;
@@ -878,7 +950,9 @@ condition:
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
       $$->left_value = *$1;
+      // $$->left_type = CONDITION_VALUE;
       $$->right_is_attr = 0;
+      // $$->right_type = CONDITION_VALUE;
       $$->right_value = *$3;
       $$->comp = $2;
 
@@ -890,25 +964,63 @@ condition:
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 1;
       $$->left_attr = *$1;
+      // $$->left_type = CONDITION_ATTR;
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
+      // $$->right_type = CONDITION_ATTR;
       $$->comp = $2;
 
       delete $1;
       delete $3;
+    }
+    /* | value comp_op LBRACE value value_list RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->left_type = CONDITION_VALUE;
+      $$->right_type = CONDITION_VALUELIST;
+      $$->right_is_attr = 0;
+      if($4 != nullptr){
+        $$->right_value_list.swap(*$4);
+      }
+      $$->right_value_list.emplace_back(*$4);
+      $$->comp = $2;
+
+      delete $1;
+      delete $4;
+    }
+    | rel_attr comp_op LBRACE value value_list RBRACE
+    {
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->left_type = CONDITION_ATTR;
+      $$->right_type = CONDITION_VALUELIST;
+      $$->right_is_attr = 0;
+      if($4 != nullptr){
+        $$->right_value_list.swap(*$4);
+      }
+      $$->right_value_list.emplace_back(*$4);
+      $$->comp = $2;
+
+      delete $1;
+      delete $4;
     }
     | value comp_op rel_attr
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
       $$->left_value = *$1;
+      $$->left_type = CONDITION_VALUE;
+      $$->right_type = CONDITION_ATTR;
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
       $$->comp = $2;
 
       delete $1;
       delete $3;
-    }
+    } */
     ;
 
 comp_op:
@@ -922,7 +1034,10 @@ comp_op:
     | LIKE_COMP { $$ = LIKE_WITH; }
     | IS NOT_COMP    { $$ = NOT_IS; }
     | IS        { $$ = IS_TO; }
-
+    /* | IN        { $$ = IN_THE;}
+    | NOT_COMP IN    { $$ = NOT_IN;}
+    | EXISTS          { $$ = EXISTS_IN;}
+    | NOT_COMP  EXISTS { $$ = NOT_EXISTS ;} */
     ;
 agg_op:
       MAX_AGG { $$ = MAX_AGGOP; }

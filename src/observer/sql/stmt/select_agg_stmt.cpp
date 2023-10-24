@@ -4,7 +4,9 @@
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/db/db.h"
+#include "storage/field/order_field.h"
 #include "storage/table/table.h"
+#include <vector>
 
 SelectAggStmt::~SelectAggStmt()
 {

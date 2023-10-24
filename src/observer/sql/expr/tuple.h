@@ -145,6 +145,14 @@ class RowTuple : public Tuple
 {
 public:
   RowTuple() = default;
+  RowTuple(const RowTuple & other){
+    this->record_ = new Record(*other.record_);
+    this->table_ = other.table_;
+    for(auto field : *(table_->table_meta().field_metas())){
+      FieldMeta *fieldMeta= new FieldMeta(std::string(field.name()).c_str(),field.type(),field.offset(),field.len(),field.visible(),field.isNullable(),field.index());
+      speces_.push_back(new FieldExpr(table_,fieldMeta));
+    }
+  }
   virtual ~RowTuple()
   {
     for (FieldExpr *spec : speces_) {
@@ -152,7 +160,6 @@ public:
     }
     speces_.clear();
   }
-
   void set_record(Record *record)
   {
     this->record_ = record;

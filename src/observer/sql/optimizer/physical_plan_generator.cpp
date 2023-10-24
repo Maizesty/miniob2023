@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/aggregation_logical_operator.h"
 #include "sql/operator/aggregation_physical_operator.h"
 #include "sql/operator/logical_operator.h"
+#include "sql/operator/sort_logical_operator.h"
 #include "sql/operator/update_logical_operator.h"
 #include "sql/optimizer/physical_plan_generator.h"
 #include "sql/operator/table_get_logical_operator.h"
@@ -37,6 +38,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/calc_logical_operator.h"
 #include "sql/operator/calc_physical_operator.h"
 #include "sql/operator/update_physical_operator.h"
+#include "sql/operator/sort_physical_operator.h"
 #include "sql/expr/expression.h"
 #include "common/log/log.h"
 #include "storage/field/agg_field.h"
@@ -63,6 +65,9 @@ RC PhysicalPlanGenerator::create(LogicalOperator &logical_operator, unique_ptr<P
     case LogicalOperatorType::PROJECTION: {
       return create_plan(static_cast<ProjectLogicalOperator &>(logical_operator), oper);
     } break;
+    case LogicalOperatorType::SORT:{
+      return create_plan(static_cast<SortLogicalOperator&>(logical_operator), oper);
+    }break;
     case LogicalOperatorType::AGGREGATION: {
       return create_plan(static_cast<AggregationLogicalOperator &>(logical_operator), oper);
     } break;
@@ -242,9 +247,38 @@ RC PhysicalPlanGenerator::create_plan(AggregationLogicalOperator &agg_oper, uniq
 
   oper = unique_ptr<PhysicalOperator>(agg_operator);
 
-  LOG_TRACE("create a project agg operator");
+  LOG_TRACE("create a agg operator");
   return rc;
 }
+RC PhysicalPlanGenerator::create_plan(SortLogicalOperator &sort_oper, unique_ptr<PhysicalOperator> &oper)
+{
+  vector<unique_ptr<LogicalOperator>> &child_opers = sort_oper.children();
+
+  unique_ptr<PhysicalOperator> child_phy_oper;
+
+  RC rc = RC::SUCCESS;
+  if (!child_opers.empty()) {
+    LogicalOperator *child_oper = child_opers.front().get();
+    rc = create(*child_oper, child_phy_oper);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to create aggregation logical operator's child physical operator. rc=%s", strrc(rc));
+      return rc;
+    }
+  }
+
+  SortPhysicalOperator *sort_operator = new SortPhysicalOperator(sort_oper.order_fileds());
+
+
+  if (child_phy_oper) {
+    sort_operator->add_child(std::move(child_phy_oper));
+  }
+
+  oper = unique_ptr<PhysicalOperator>(sort_operator);
+
+  LOG_TRACE("create a sort operator");
+  return rc;
+}
+
 
 RC PhysicalPlanGenerator::create_plan(InsertLogicalOperator &insert_oper, unique_ptr<PhysicalOperator> &oper)
 {
