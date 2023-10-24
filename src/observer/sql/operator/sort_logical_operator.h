@@ -12,7 +12,7 @@
 class SortLogicalOperator : public LogicalOperator 
 {
 public:
-  SortLogicalOperator(const std::vector<OrderFiled> &order_fields):order_fileds_(order_fields)
+  SortLogicalOperator(const std::vector<OrderFiled> &order_fields,std::vector<Field>      project_fields):order_fileds_(order_fields),project_fields_(project_fields)
   {
     
   }
@@ -35,7 +35,11 @@ public:
   {
     return order_fileds_;
   }
-
+  const std::vector<Field> &project_fields() const
+  {
+    return project_fields_;
+  }
 private:
   std::vector<OrderFiled> order_fileds_;
+  std::vector<Field>      project_fields_;
 };

@@ -102,7 +102,6 @@ RC LogicalPlanGenerator::create_plan(
         fields.push_back(field);
       }
     }
-
     unique_ptr<LogicalOperator> table_get_oper(new TableGetLogicalOperator(table, fields, true/*readonly*/));
     if (table_oper == nullptr) {
       table_oper = std::move(table_get_oper);
@@ -120,35 +119,42 @@ RC LogicalPlanGenerator::create_plan(
     LOG_WARN("failed to create predicate logical plan. rc=%s", strrc(rc));
     return rc;
   }
-  unique_ptr<LogicalOperator> order_oper(new SortLogicalOperator(select_stmt->order_fileds()));
-  unique_ptr<LogicalOperator> project_oper(new ProjectLogicalOperator(all_fields));
-  if(select_stmt->order_fileds().empty()){
-    if (predicate_oper) {
-      if (table_oper) {
-        predicate_oper->add_child(std::move(table_oper));
-      }
-      project_oper->add_child(std::move(predicate_oper));
-    } else {
-      if (table_oper) {
-        project_oper->add_child(std::move(table_oper));
+  unique_ptr<LogicalOperator> order_oper(new SortLogicalOperator(select_stmt->order_fileds(),all_fields));
+  std::vector<Field> new_all_fields;
+  for(auto field : all_fields)
+    new_all_fields.push_back(field);
+  for(auto orderField : select_stmt->order_fileds()){
+    bool find = false;
+    for(auto field : all_fields){
+      if(0 == strcmp(field.table_name(),orderField.table_name())&& 0 == strcmp(field.field_name(),orderField.field_name())){
+        find = true;
+        break;
       }
     }
-  }else{
-    if (predicate_oper) {
-      if (table_oper) {
-        predicate_oper->add_child(std::move(table_oper));
-      }
-      order_oper->add_child(std::move(predicate_oper));
-      project_oper->add_child(std::move(order_oper));
-    } else {
-      if (table_oper) {
-        order_oper->add_child(std::move(table_oper));
-        project_oper->add_child(std::move(order_oper));
-      }
+    if(!find){
+      new_all_fields.push_back(Field(orderField.table(),orderField.meta()));
+    }
+
+  }
+  unique_ptr<LogicalOperator> project_oper(new ProjectLogicalOperator(new_all_fields));
+
+  if (predicate_oper) {
+    if (table_oper) {
+      predicate_oper->add_child(std::move(table_oper));
+    }
+    project_oper->add_child(std::move(predicate_oper));
+  } else {
+    if (table_oper) {
+      project_oper->add_child(std::move(table_oper));
     }
   }
-
-  logical_operator.swap(project_oper);
+  
+  if(select_stmt->order_fileds().empty())
+    logical_operator.swap(project_oper);
+  else{
+    order_oper->add_child(std::move(project_oper));
+    logical_operator.swap(order_oper);
+  }
   return RC::SUCCESS;
 }
 

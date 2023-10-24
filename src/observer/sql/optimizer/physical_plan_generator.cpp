@@ -266,7 +266,7 @@ RC PhysicalPlanGenerator::create_plan(SortLogicalOperator &sort_oper, unique_ptr
     }
   }
 
-  SortPhysicalOperator *sort_operator = new SortPhysicalOperator(sort_oper.order_fileds());
+  SortPhysicalOperator *sort_operator = new SortPhysicalOperator(sort_oper.order_fileds(),sort_oper.project_fields());
 
 
   if (child_phy_oper) {

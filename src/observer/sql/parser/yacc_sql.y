@@ -646,6 +646,10 @@ select_stmt:        /*  select 语句的语法解析树*/
         $$->selection.conditions.swap(*$6);
         delete $6;
       }
+      if($7!= nullptr){
+        $$->selection.order_by_node_list.swap(*$7);
+        delete $7;
+      }
       free($4);
     }
     |SELECT select_attr FROM ID join_list rel_list where order_stmt

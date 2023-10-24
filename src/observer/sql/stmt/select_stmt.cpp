@@ -167,7 +167,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
       }
       order_fileds.push_back(OrderFiled(table,field_meta,order.orderByType));
     }
-    
+      
   }
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;

@@ -46,12 +46,12 @@ RC SortPhysicalOperator::next()
       LOG_WARN("failed to get tuple from operator");
       break;
     }
-    RowTuple* rowTuple =new RowTuple(*static_cast<RowTuple *>(tuple));
+    ProjectTuple* project_tuple =new ProjectTuple(*static_cast<ProjectTuple *>(tuple));
     
-    tuples_.push_back(rowTuple);
+    tuples_.push_back(project_tuple);
     
   }
-  auto sortLambda = [this](RowTuple * p1, RowTuple * p2) {
+  auto sortLambda = [this](ProjectTuple * p1, ProjectTuple * p2) {
       return  this->SortCompare_.comparePairs(p1, p2);
   };
   std::sort(tuples_.begin(), tuples_.end(),sortLambda);

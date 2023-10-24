@@ -31,7 +31,7 @@ class SortCompare{
   public:
   std::vector<OrderFiled> order_fields_;
   std::vector<TupleCellSpec> tuple_cell_specs_;
-  bool comparePairs(RowTuple * p1, RowTuple * p2) {
+  bool comparePairs(ProjectTuple * p1, ProjectTuple * p2) {
     bool result = false;
     for(int i = 0; i < tuple_cell_specs_.size();i++){
       Value v1,v2;
@@ -55,7 +55,7 @@ class SortCompare{
 class SortPhysicalOperator : public PhysicalOperator
 {
 public:
-  SortPhysicalOperator(std::vector<OrderFiled> order_fields):order_fields_(order_fields),SortCompare_(order_fields)
+  SortPhysicalOperator(std::vector<OrderFiled> order_fields,std::vector<Field> project_fields):order_fields_(order_fields),SortCompare_(order_fields),project_fields_(project_fields)
   {
     
   }
@@ -86,8 +86,9 @@ public:
 private:
   RowTuple tuple_;
   std::vector<OrderFiled> order_fields_;
+  std::vector<Field> project_fields_;
   SortCompare SortCompare_;
-  std::vector<RowTuple*> tuples_;
+  std::vector<ProjectTuple*> tuples_;
   int count = 0;
 };
 

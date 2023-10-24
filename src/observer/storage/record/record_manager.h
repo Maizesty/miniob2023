@@ -104,6 +104,7 @@ public:
    */
   bool is_valid() const { return record_page_handler_ != nullptr; }
 
+
 private:
   RecordPageHandler *record_page_handler_ = nullptr;
   PageNum            page_num_            = BP_INVALID_PAGE_NUM;
@@ -194,6 +195,9 @@ public:
    */
   PageNum get_page_num() const;
 
+  int record_size()const{
+    return page_header_->record_size;
+  }
   /**
    * @brief 当前页面是否已经没有空闲位置插入新的记录
    */

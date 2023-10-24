@@ -67,8 +67,8 @@ bool RecordPageIterator::has_next() { return -1 != next_slot_num_; }
 RC RecordPageIterator::next(Record &record)
 {
   record.set_rid(page_num_, next_slot_num_);
-  record.set_data(record_page_handler_->get_record_data(record.rid().slot_num));
-
+  //这是真无语，初始化不知道把record size初始化一下？？？？？
+  record.set_data(record_page_handler_->get_record_data(record.rid().slot_num),record_page_handler_->record_size());
   if (next_slot_num_ >= 0) {
     next_slot_num_ = bitmap_.next_setted_bit(next_slot_num_ + 1);
   }
