@@ -77,6 +77,7 @@ enum CompOp
  * 左边和右边理论上都可以是任意的数据，比如是字段（属性，列），也可以是数值常量。
  * 这个结构中记录的仅仅支持字段和值。
  */
+struct ParsedSqlNode;
 struct ConditionSqlNode
 {
   int             left_is_attr;    ///< TRUE if left-hand side is an attribute
@@ -88,6 +89,11 @@ struct ConditionSqlNode
                                    ///< 1时，操作符右边是属性名，0时，是属性值
   RelAttrSqlNode  right_attr;      ///< right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value           right_value;     ///< right-hand side value if right_is_attr = FALSE
+  std::vector<Value> in_list;
+  ParsedSqlNode* sub_select;
+  int           is_exists;        ///< 0，代表非exist子句；1，代表exist子句；2，代表not exist子句
+  int           is_in;            ///< 0，代表非in子句；1，代表in value_list子句；2，代表not in value_list子句
+                                  ///<                 3，代表in sub_select子句；4，代表not in sub_select子句
 };
 
 /**
@@ -107,7 +113,18 @@ struct SelectSqlNode
   std::vector<std::string>        relations;     ///< 查询的表
   std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
   bool                            hasAgg;
+  std::vector<SelectSqlNode>      children;      ///< 子查询
 };
+
+struct SubSelectConditionSqlNode
+{
+  int             left_is_attr;    ///< TRUE if left-hand side is an attribute
+                                   ///< 1时，操作符左边是属性名，0时，是属性值
+  Value           left_value;      ///< left-hand side value if left_is_attr = FALSE
+  RelAttrSqlNode  left_attr;       ///< left-hand side attribute
+  SelectSqlNode sub_select;
+};
+
 struct JoinSqlNode
 {
   std::vector<std::string>        relations;

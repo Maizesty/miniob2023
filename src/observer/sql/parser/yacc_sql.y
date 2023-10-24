@@ -88,6 +88,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         AND
         SET
         ON
+        IN
+        EXISTS
+        NOT_IN
+        NOT_EXISTS
         LOAD
         DATA
         INFILE
@@ -869,6 +873,8 @@ condition:
       $$->right_is_attr = 0;
       $$->right_value = *$3;
       $$->comp = $2;
+      $$->is_exists = 0;
+      $$->is_in = 0;
 
       delete $1;
       delete $3;
@@ -881,6 +887,8 @@ condition:
       $$->right_is_attr = 0;
       $$->right_value = *$3;
       $$->comp = $2;
+      $$->is_exists = 0;
+      $$->is_in = 0;
 
       delete $1;
       delete $3;
@@ -893,6 +901,8 @@ condition:
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
       $$->comp = $2;
+      $$->is_exists = 0;
+      $$->is_in = 0;
 
       delete $1;
       delete $3;
@@ -905,9 +915,59 @@ condition:
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
       $$->comp = $2;
+      $$->is_exists = 0;
+      $$->is_in = 0;
 
       delete $1;
       delete $3;
+    }
+    | rel_attr IN LBRACE value_list RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->right_is_attr = 2;
+      $$->in_list = *$4;
+      $$->is_exists = 0;
+      $$->is_in = 1;
+    }
+    | value NOT_IN LBRACE value_list RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->right_is_attr = 2;
+      $$->in_list = *$4;
+      $$->is_exists = 0;
+      $$->is_in = 2;
+    }
+    | rel_attr IN LBRACE select_stmt RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 1;
+      $$->left_attr = *$1;
+      $$->right_is_attr = 3;
+      $$->sub_select = $4;
+      $$->is_exists = 0;
+      $$->is_in = 3;
+    }
+    | value NOT_IN LBRACE select_stmt RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->left_is_attr = 0;
+      $$->left_value = *$1;
+      $$->right_is_attr = 3;
+      $$->sub_select = $4;
+      $$->is_exists = 0;
+      $$->is_in = 4;
+    }
+    | EXISTS LBRACE select_stmt RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->is_exists = 1;
+      $$->is_in = 0;
+      $$->sub_select = $3;
+    }
+    | NOT_EXISTS LBRACE select_stmt RBRACE{
+      $$ = new ConditionSqlNode;
+      $$->is_exists = 2;
+      $$->is_in = 0;
+      $$->sub_select = $3;
     }
     ;
 
