@@ -30,7 +30,7 @@ FieldMeta::FieldMeta() : attr_type_(AttrType::UNDEFINED), attr_offset_(-1), attr
 {}
 
 FieldMeta::FieldMeta(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible, bool isNullable,int index){
-  [[maybe_unused]] RC rc = this->init(name, attr_type, attr_offset, attr_len, visible, isNullable);
+  [[maybe_unused]] RC rc = this->init(name, attr_type, attr_offset, attr_len, visible, isNullable,index);
     ASSERT(rc == RC::SUCCESS, "failed to init field meta. rc=%s", strrc(rc));
 }
 

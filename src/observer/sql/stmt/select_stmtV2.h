@@ -4,11 +4,10 @@
 #include <memory>
 
 #include "common/rc.h"
-#include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
-#include "storage/field/agg_field.h"
 #include "storage/field/order_field.h"
+#include "storage/field/agg_field.h"
 
 class FieldMeta;
 class FilterStmt;
@@ -16,18 +15,18 @@ class Db;
 class Table;
 
 /**
- * @brief 表示带聚合的select语句
- * @ingroup SelectAggStmt
+ * @brief 表示select语句
+ * @ingroup Statement
  */
-class SelectAggStmt : public Stmt 
+class SelectStmtV2 : public Stmt 
 {
 public:
-  SelectAggStmt() = default;
-  ~SelectAggStmt() override;
+  SelectStmtV2() = default;
+  ~SelectStmtV2() override;
 
   StmtType type() const override
   {
-    return StmtType::SELECT_AGG;
+    return StmtType::SELECT;
   }
 
 public:
@@ -46,19 +45,18 @@ public:
   {
     return filter_stmt_;
   }
-  const std::vector<AggField> &agg_fields() const
-  {
-    return agg_fields_;
-  }
   const std::vector<OrderFiled> &order_fileds() const
   {
     return order_fileds_;
   }
-
+  const std::vector<AggField> &agg_fields() const
+  {
+    return agg_fields_;
+  }
 private:
   std::vector<Field> query_fields_;
-  std::vector<AggField> agg_fields_;
   std::vector<Table *> tables_;
   FilterStmt *filter_stmt_ = nullptr;
   std::vector<OrderFiled> order_fileds_;
+  std::vector<AggField> agg_fields_;
 };

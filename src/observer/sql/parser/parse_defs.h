@@ -36,6 +36,12 @@ enum AggOp
   SUM_AGGOP 
  
 };
+enum OrderByType 
+{
+  ASC_TYPE,
+  DESC_TYPE
+ 
+};
 /**
  * @brief 描述一个属性
  * @ingroup SQLParser
@@ -48,6 +54,11 @@ struct RelAttrSqlNode
   std::string relation_name;   ///< relation name (may be NULL) 表名
   std::string attribute_name;  ///< attribute name              属性名
   AggOp aggOp;
+};
+
+struct OrderByNode{
+  RelAttrSqlNode rel;
+  OrderByType orderByType;
 };
 
 /**
@@ -113,16 +124,7 @@ struct SelectSqlNode
   std::vector<std::string>        relations;     ///< 查询的表
   std::vector<ConditionSqlNode>   conditions;    ///< 查询条件，使用AND串联起来多个条件
   bool                            hasAgg;
-  std::vector<SelectSqlNode>      children;      ///< 子查询
-};
-
-struct SubSelectConditionSqlNode
-{
-  int             left_is_attr;    ///< TRUE if left-hand side is an attribute
-                                   ///< 1时，操作符左边是属性名，0时，是属性值
-  Value           left_value;      ///< left-hand side value if left_is_attr = FALSE
-  RelAttrSqlNode  left_attr;       ///< left-hand side attribute
-  SelectSqlNode sub_select;
+  std::vector<OrderByNode>        order_by_node_list;
 };
 
 struct JoinSqlNode

@@ -23,6 +23,7 @@ See the Mulan PSL v2 for more details. */
 #include "event/sql_event.h"
 #include "event/session_event.h"
 #include "sql/stmt/select_agg_stmt.h"
+#include "sql/stmt/select_stmtV2.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "storage/default/default_handler.h"
@@ -68,16 +69,41 @@ RC ExecuteStage::handle_request_with_physical_operator(SQLStageEvent *sql_event)
   TupleSchema schema;
   switch (stmt->type()) {
     case StmtType::SELECT: {
-      SelectStmt *select_stmt = static_cast<SelectStmt *>(stmt);
+      SelectStmtV2 *select_stmt = static_cast<SelectStmtV2 *>(stmt);
       bool with_table_name = select_stmt->tables().size() > 1;
-
-      for (const Field &field : select_stmt->query_fields()) {
+      if(select_stmt->agg_fields().empty())
+        for (const Field &field : select_stmt->query_fields()) {
+          if (with_table_name) {
+            schema.append_cell(field.table_name(), field.field_name());
+          } else {
+            schema.append_cell(field.field_name());
+          }
+        }
+      else{
+        for (const AggField &field : select_stmt->agg_fields()) {
         if (with_table_name) {
-          schema.append_cell(field.table_name(), field.field_name());
+          if(field.is_star())
+            schema.append_cell(field.table_name(), "*",field.aggOp());
+          else
+            schema.append_cell(field.table_name(), field.field_name(),field.aggOp());
         } else {
-          schema.append_cell(field.field_name());
+          if(field.is_star())
+            schema.append_cell("*",field.aggOp());
+          else
+            schema.append_cell(field.field_name(),field.aggOp());
         }
       }
+      }
+      // SelectStmt *select_stmt = static_cast<SelectStmt *>(stmt);
+      // bool with_table_name = select_stmt->tables().size() > 1;
+
+      // for (const Field &field : select_stmt->query_fields()) {
+      //   if (with_table_name) {
+      //     schema.append_cell(field.table_name(), field.field_name());
+      //   } else {
+      //     schema.append_cell(field.field_name());
+      //   }
+      // }
     } break;
     case StmtType::SELECT_AGG :{
       SelectAggStmt *select_agg_stmt = static_cast<SelectAggStmt *>(stmt);

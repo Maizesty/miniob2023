@@ -26,7 +26,19 @@ See the Mulan PSL v2 for more details. */
 #include "storage/record/record.h"
 
 class Table;
-
+enum TupleType{
+  UNDEFINED_TUPLE,
+  ROW,
+  PROJECT,
+  JOIN,
+  EXPRESSION,
+  VALUE
+};
+// class Tuple;
+// class JoinedTuple;
+// class ProjectTuple;
+// class RowTuple;
+// class ValueListTuple;
 /**
  * @defgroup Tuple
  * @brief Tuple 元组，表示一行数据，当前返回客户端时使用
@@ -48,6 +60,7 @@ class Table;
  * @brief 元组的结构，包含哪些字段(这里成为Cell)，每个字段的说明
  * @ingroup Tuple
  */
+Tuple * copy_tuple(Tuple* src);
 class TupleSchema 
 {
 public:
@@ -99,7 +112,7 @@ public:
    * @details 个数应该与tuple_schema一致
    */
   virtual int cell_num() const = 0;
-
+  virtual int tuple_type() const = 0;
   /**
    * @brief 获取指定位置的Cell
    * 
@@ -145,6 +158,14 @@ class RowTuple : public Tuple
 {
 public:
   RowTuple() = default;
+  RowTuple(const RowTuple & other){
+    this->record_ = new Record(*other.record_);
+    this->table_ = other.table_;
+    for(auto field : *(table_->table_meta().field_metas())){
+      FieldMeta *fieldMeta= new FieldMeta(std::string(field.name()).c_str(),field.type(),field.offset(),field.len(),field.visible(),field.isNullable(),field.index());
+      speces_.push_back(new FieldExpr(table_,fieldMeta));
+    }
+  }
   virtual ~RowTuple()
   {
     for (FieldExpr *spec : speces_) {
@@ -152,7 +173,6 @@ public:
     }
     speces_.clear();
   }
-
   void set_record(Record *record)
   {
     this->record_ = record;
@@ -171,7 +191,9 @@ public:
   {
     return speces_.size();
   }
-
+  int tuple_type() const override{
+    return ROW;
+  }
   RC cell_at(int index, Value &cell) const override
   {
     if (index < 0 || index >= static_cast<int>(speces_.size())) {
@@ -251,6 +273,9 @@ class ProjectTuple : public Tuple
 {
 public:
   ProjectTuple() = default;
+  int tuple_type() const override{
+    return PROJECT;
+  }
   virtual ~ProjectTuple()
   {
     for (TupleCellSpec *spec : speces_) {
@@ -258,7 +283,12 @@ public:
     }
     speces_.clear();
   }
-
+  ProjectTuple(const ProjectTuple & other){
+    tuple_ = copy_tuple(other.tuple_);
+    for(auto spec : other.speces_){
+      this->speces_.push_back(new TupleCellSpec(spec->table_name(),spec->field_name()));
+    }
+  }
   void set_tuple(Tuple *tuple)
   {
     this->tuple_ = tuple;
@@ -317,7 +347,9 @@ public:
   virtual ~ExpressionTuple()
   {
   }
-
+  int tuple_type() const override{
+    return PROJECT;
+  }
   int cell_num() const override
   {
     return expressions_.size();
@@ -357,12 +389,18 @@ class ValueListTuple : public Tuple
 public:
   ValueListTuple() = default;
   virtual ~ValueListTuple() = default;
-
+  ValueListTuple(const ValueListTuple & other){
+    for(auto value : other.cells_){
+      this->cells_.push_back(value);
+    }
+  }
   void set_cells(const std::vector<Value> &cells)
   {
     cells_ = cells;
   }
-
+  int tuple_type() const override{
+    return VALUE;
+  }
   virtual int cell_num() const override
   {
     return static_cast<int>(cells_.size());
@@ -397,7 +435,10 @@ class JoinedTuple : public Tuple
 public:
   JoinedTuple() = default;
   virtual ~JoinedTuple() = default;
-
+  JoinedTuple(const JoinedTuple & other){
+    left_ = copy_tuple(other.left_);
+    right_ = copy_tuple(other.right_);
+  }
   void set_left(Tuple *left)
   {
     left_ = left;
@@ -406,7 +447,9 @@ public:
   {
     right_ = right;
   }
-
+  int tuple_type() const override{
+    return JOIN;
+  }
   int cell_num() const override
   {
     return left_->cell_num() + right_->cell_num();
@@ -440,3 +483,4 @@ private:
   Tuple *left_ = nullptr;
   Tuple *right_ = nullptr;
 };
+

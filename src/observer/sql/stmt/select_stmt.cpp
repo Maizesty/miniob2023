@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/db/db.h"
+#include "storage/field/order_field.h"
 #include "storage/table/table.h"
 
 SelectStmt::~SelectStmt()
@@ -132,7 +133,42 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   if (tables.size() == 1) {
     default_table = tables[0];
   }
-
+  std::vector<OrderFiled> order_fileds;
+  for(OrderByNode order : select_sql.order_by_node_list){
+    RelAttrSqlNode rel = order.rel;
+    
+    if(common::is_blank(rel.relation_name.c_str())){
+      if(tables.size()>1){
+        LOG_WARN("invalid. I do not know the attr's table. attr=%s", rel.attribute_name.c_str());
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+      Table *table = tables[0];
+      const FieldMeta *field_meta = table->table_meta().field(rel.attribute_name.c_str());
+      if (nullptr == field_meta) {
+        LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), rel.attribute_name.c_str());
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+      order_fileds.push_back(OrderFiled(table,field_meta,order.orderByType));
+    }else{
+      std::string table_name = rel.relation_name;
+      Table *table = db->find_table(table_name.c_str());
+      if (nullptr == table) {
+      LOG_WARN("no such table. db=%s, table_name=%s", db->name(), table_name.c_str());
+      return RC::SCHEMA_TABLE_NOT_EXIST;
+      }
+      if(find(tables.begin(),tables.end(),table) == tables.end()){
+        LOG_WARN("no such table in select query field,: ",table_name.c_str());
+        return RC::INTERNAL;
+      }
+      const FieldMeta *field_meta = table->table_meta().field(rel.attribute_name.c_str());
+      if (nullptr == field_meta) {
+        LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), rel.attribute_name.c_str());
+        return RC::SCHEMA_FIELD_MISSING;
+      }
+      order_fileds.push_back(OrderFiled(table,field_meta,order.orderByType));
+    }
+      
+  }
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;
   RC rc = FilterStmt::create(db,
@@ -152,6 +188,7 @@ RC SelectStmt::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->order_fileds_.swap(order_fileds);
   stmt = select_stmt;
   return RC::SUCCESS;
 }

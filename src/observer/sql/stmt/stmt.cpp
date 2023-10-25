@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "sql/parser/parse_defs.h"
+#include "sql/stmt/select_stmtV2.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/insert_stmt.h"
 #include "sql/stmt/delete_stmt.h"
@@ -45,10 +46,11 @@ RC Stmt::create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt)
       return DeleteStmt::create(db, sql_node.deletion, stmt);
     }
     case SCF_SELECT: {
-      if(sql_node.selection.hasAgg)
-        return SelectAggStmt::create(db, sql_node.selection, stmt);
-      else
-        return SelectStmt::create(db, sql_node.selection, stmt);
+      // if(sql_node.selection.hasAgg)
+      //   return SelectAggStmt::create(db, sql_node.selection, stmt);
+      // else
+      //   return SelectStmt::create(db, sql_node.selection, stmt);
+      return SelectStmtV2::create(db, sql_node.selection, stmt);
     }
     case SCF_UPDATE:{
       return UpdateStmt::create(db, sql_node.update,stmt);
