@@ -1011,20 +1011,21 @@ condition:
       delete $1;
       delete $4;
     }
+    */
     | value comp_op rel_attr
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
       $$->left_value = *$1;
-      $$->left_type = CONDITION_VALUE;
-      $$->right_type = CONDITION_ATTR;
+      // $$->left_type = CONDITION_VALUE;
+      // $$->right_type = CONDITION_ATTR;
       $$->right_is_attr = 1;
       $$->right_attr = *$3;
       $$->comp = $2;
 
       delete $1;
       delete $3;
-    } */
+    } 
     ;
 
 comp_op:

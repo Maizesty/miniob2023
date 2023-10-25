@@ -38,7 +38,7 @@ class SortCompare{
       p1->find_cell(tuple_cell_specs_[i], v1);
       p2->find_cell(tuple_cell_specs_[i], v2);
       int cmp_result = v1.compare(v2);
-      if(cmp_result == 0){
+      if(cmp_result == 0 || (v1.isNull() && v2.isNull())){
         continue;
       }
       if(order_fields_[i].order() == ASC_TYPE){
