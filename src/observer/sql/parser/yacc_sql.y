@@ -666,28 +666,30 @@ select_stmt:        /*  select 语句的语法解析树*/
         }
         delete $2;
       }
-      if ($6 != nullptr) {
-        $$->selection.relations.swap(*$6);
-        delete $6;
-      }
-      $$->selection.relations.push_back($4);
-      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
-
       if ($7 != nullptr) {
         $$->selection.conditions.swap(*$7);
         delete $7;
       }
+      if ($6 != nullptr) {
+        $$->selection.relations.swap(*$6);
+        delete $6;
+      }
+      if ($5!=nullptr){
+        $$->selection.conditions.insert($$->selection.conditions.end(),$5->conditions.begin(),$5->conditions.end());
+        $$->selection.relations.insert($$->selection.relations.end(),$5->relations.begin(),$5->relations.end());
+        free($5);
+      }
+      $$->selection.relations.push_back($4);
+      std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
+
+
       if($8!= nullptr){
         $$->selection.order_by_node_list.swap(*$8);
         delete $8;
       }
       free($4);
 
-      if ($5!=nullptr){
-        $$->selection.conditions.insert($$->selection.conditions.end(),$5->conditions.begin(),$5->conditions.end());
-        $$->selection.relations.insert($$->selection.relations.end(),$5->relations.begin(),$5->relations.end());
-        free($5);
-      }
+
     }
     ;
     join_list:
