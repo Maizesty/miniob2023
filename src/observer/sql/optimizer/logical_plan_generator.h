@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/rc.h"
 #include "sql/stmt/select_agg_stmt.h"
+#include "sql/stmt/select_stmtV2.h"
 #include "sql/stmt/update_stmt.h"
 
 class Stmt;
@@ -29,7 +30,7 @@ class DeleteStmt;
 class ExplainStmt;
 class LogicalOperator;
 class SelectAggStmt;
-
+class SelectStmtV2;
 class LogicalPlanGenerator
 {
 public:
@@ -47,5 +48,5 @@ private:
   RC create_plan(UpdateStmt *updateStmt, std::unique_ptr<LogicalOperator> &logical_operator);
   RC create_plan(DeleteStmt *delete_stmt, std::unique_ptr<LogicalOperator> &logical_operator);
   RC create_plan(ExplainStmt *explain_stmt, std::unique_ptr<LogicalOperator> &logical_operator);
-  
+  RC create_plan(SelectStmtV2 *select_stmt, std::unique_ptr<LogicalOperator> &logical_operator);
 };
