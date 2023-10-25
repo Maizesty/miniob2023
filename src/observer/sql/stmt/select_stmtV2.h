@@ -2,13 +2,14 @@
 
 #include <vector>
 #include <memory>
-
+#include "sql/operator/logical_operator.h"
 #include "common/rc.h"
 #include "sql/stmt/stmt.h"
 #include "storage/field/field.h"
 #include "storage/field/order_field.h"
 #include "storage/field/agg_field.h"
-
+#include "sql/optimizer/optimize_stage.h"
+#include "subquery_helper.h"
 class FieldMeta;
 class FilterStmt;
 class Db;
@@ -30,7 +31,7 @@ public:
   }
 
 public:
-  static RC create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt);
+  static RC create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQLStageEvent *sql_event=nullptr);
 
 public:
   const std::vector<Table *> &tables() const

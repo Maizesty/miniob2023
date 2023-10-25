@@ -29,17 +29,25 @@ struct FilterObj
   bool is_attr;
   Field field;
   Value value;
-
+  ConditionValueType type;
+  std::vector<Value>  value_list;
   void init_attr(const Field &field)
   {
     is_attr = true;
+    type = ATTR;
     this->field = field;
   }
 
   void init_value(const Value &value)
   {
     is_attr = false;
+    type = SINGLE_VALUE;
     this->value = value;
+  }
+  void init_value_list( std::vector<Value>  value_list){
+    is_attr = false;
+    type = VALUE_LIST;
+    this->value_list.swap(value_list);
   }
 };
 

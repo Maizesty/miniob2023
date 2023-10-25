@@ -25,9 +25,14 @@ class Field
 {
 public:
   Field() = default;
-  Field(const Table *table, const FieldMeta *field) : table_(table), field_(field)
-  {}
-  Field(const Field &) = default;
+  Field(const Table *table, const FieldMeta *field) : table_(table)
+  {
+    if(field!=nullptr)
+      field_ = new FieldMeta(field->name(),field->type(),field->offset(),field->len(),field->visible(),field->isNullable(),field->index());
+    else
+      field_ = nullptr;
+  }
+  Field(const Field & ) = default;
 
   const Table *table() const
   {

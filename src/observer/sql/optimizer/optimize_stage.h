@@ -39,7 +39,7 @@ class OptimizeStage
 {
 public:
   RC handle_request(SQLStageEvent *event);
-
+  RC handle_request(Stmt *stmt,std::unique_ptr<LogicalOperator> &logical_operator, std::unique_ptr<PhysicalOperator> &physical_operator);
 private:
   /**
    * @brief 根据SQL生成逻辑计划

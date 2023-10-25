@@ -358,3 +358,74 @@ RC ArithmeticExpr::try_get_value(Value &value) const
 
   return calc_value(left_value, right_value, value);
 }
+bool IsNotSetOp(CompOp comOp){
+  return comOp <  IN_THE;
+}
+RC MultiValueExpression::get_values(std::vector<Value>& value_list,int* num) {
+  *num = this->value_list_.size();
+  for(auto value : value_list_){
+    value_list.push_back(value);
+  }
+  return RC::SUCCESS;
+}
+RC MultiValueExpression::get_value(const Tuple &tuple, Value &value) const{
+  return RC::UNIMPLENMENT;
+}
+RC MultiValueExpression::try_get_value(Value &value) const{
+  return RC::UNIMPLENMENT;
+}
+RC MultiValueComparisonExpr::try_get_value(Value &cell) const
+{
+
+  return RC::UNIMPLENMENT;
+}
+
+RC MultiValueComparisonExpr::get_value(const Tuple &tuple, Value &value) const
+{
+  Value left_value;
+  Value* right_values;
+  int num = 0;
+  if(comp_<IN_THE){
+    LOG_WARN("can not use this op on MultiValueComparisonExpr");
+    return RC::INTERNAL;
+  }
+  RC rc = left_->get_value(tuple, left_value);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to get value of left expression. rc=%s", strrc(rc));
+    return rc;
+  }
+  std::vector<Value> value_list;
+  rc = right_->get_values(value_list, &num);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to get value of right expression. rc=%s", strrc(rc));
+    return rc;
+  }
+
+  bool bool_value = false;
+  rc = compare_value(left_value, value_list, bool_value,num);
+  if (rc == RC::SUCCESS) {
+    value.set_boolean(bool_value);
+  }
+  return rc;
+}
+RC MultiValueComparisonExpr::compare_value(const Value &left, std::vector<Value>& value_list, bool &result,int num) const{
+  RC rc = RC::SUCCESS;
+  bool exist = false;
+  for(int i =0;i<num;i++){
+    Value right = value_list[i];
+    int c = left.compare(right);
+    if(c == 0){
+      exist = true;
+      break;
+    }
+  }
+  if(comp_ == IN_THE || comp_ == EXISTS_IN){
+    result = exist;
+    return RC::SUCCESS;
+  }else{
+    result = !exist;
+    return RC::SUCCESS;
+  }
+  
+}
+MultiValueComparisonExpr::~MultiValueComparisonExpr(){}

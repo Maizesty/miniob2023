@@ -17,8 +17,6 @@ See the Mulan PSL v2 for more details. */
 #include <memory>
 
 #include "common/rc.h"
-#include "sql/stmt/select_agg_stmt.h"
-#include "sql/stmt/select_stmtV2.h"
 #include "sql/stmt/update_stmt.h"
 
 class Stmt;

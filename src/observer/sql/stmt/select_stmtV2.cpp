@@ -38,7 +38,7 @@ static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
   }
 }
 
-RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
+RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQLStageEvent *sql_event)
 {
 
 
@@ -115,7 +115,7 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
 
           query_fields.push_back(Field(table, field_meta));
           if(relation_attr.aggOp !=NO_AGGOP)
-            agg_fields.push_back(AggField(nullptr,nullptr,relation_attr.aggOp,true));
+            agg_fields.push_back(AggField(table,field_meta,relation_attr.aggOp,false));
         }
       }
     } else {
@@ -192,12 +192,74 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt)
     }
       
   }
+  RC rc = RC::SUCCESS;
+  SubqueryHelper subqueryHelper_;
+  //侵入性修改：
+  std::vector<ConditionSqlNode> conditions;
+  for(auto condition : select_sql.conditions){
+    if(condition.left_type == SUBQUERY){
+      Stmt *stmt = nullptr;
+      Value* left_value_list;
+      int num = 0;
+      std::vector<Value> tmp;
+      rc = subqueryHelper_.handleSubQuery(db, *condition.left_sub_query, tmp, sql_event,&num);
+      if(rc!=RC::SUCCESS){
+        LOG_WARN("can not convert left sub query into value list");
+        return rc;
+      }
+      if(IsNotSetOp(condition.comp)){
+        if(num>1){
+          LOG_WARN("subquery return too mant rows");
+          return RC::INTERNAL;
+        }
+        condition.left_type = SINGLE_VALUE;
+        if(num == 0)
+          condition.left_value.set_null();
+        else
+          condition.left_value.set_value(tmp[0]);
+      }else{
+        condition.left_type = VALUE_LIST;
+        if (num>0)
+          condition.left_value_list.swap(tmp);
+      }
+
+    }
+    if(condition.right_type == SUBQUERY){
+      Stmt *stmt = nullptr;
+      Value* right_value_list;
+      int num = 0;
+      std::vector<Value> tmp;
+      rc = subqueryHelper_.handleSubQuery(db, *condition.right_sub_query, tmp, sql_event,&num);
+      if(rc!=RC::SUCCESS){
+        LOG_WARN("can not convert right sub query into value list");
+        return rc;
+      }
+      if(IsNotSetOp(condition.comp)){
+        if(num>1){
+          LOG_WARN("subquery return too mant rows");
+          return RC::INTERNAL;
+        }
+
+        condition.right_type = SINGLE_VALUE;
+        if(num == 0)
+          condition.right_value.set_null();
+        else
+          condition.right_value.set_value(tmp[0]);
+      }else{
+        condition.right_type = VALUE_LIST;
+        if (num>0)
+          condition.right_value_list.swap(tmp);
+      }
+
+    }
+    conditions.push_back(condition);
+  }
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;
-  RC rc = FilterStmt::create(db,
+  rc = FilterStmt::create(db,
       default_table,
       &table_map,
-      select_sql.conditions.data(),
+      conditions.data(),
       static_cast<int>(select_sql.conditions.size()),
       filter_stmt);
   if (rc != RC::SUCCESS) {

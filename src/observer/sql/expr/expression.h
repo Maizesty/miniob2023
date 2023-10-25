@@ -43,6 +43,8 @@ enum class ExprType
   COMPARISON,   ///< 需要做比较的表达式
   CONJUNCTION,  ///< 多个表达式使用同一种关系(AND或OR)来联结
   ARITHMETIC,   ///< 算术运算
+  MULTI,
+  MULTICOMPARISON
 };
 
 /**
@@ -227,6 +229,56 @@ private:
   std::unique_ptr<Expression> right_;
 };
 
+class MultiValueExpression : public Expression {
+  public:
+  ExprType type() const override { return ExprType::MULTI; }
+  RC get_value(const Tuple &tuple, Value &value) const override;
+  RC try_get_value(Value &value) const override;
+  MultiValueExpression(std::vector<Value> value_list){
+    for(auto value:value_list)
+      value_list_.push_back(value);
+  };
+  AttrType value_type() const override {return BOOLEANS;};
+  RC get_values(std::vector<Value>& value_list,int* num) ;
+  private:
+  int counter = 0;
+  std::vector<Value> value_list_;
+};
+class MultiValueComparisonExpr : public Expression 
+{
+public:
+  MultiValueComparisonExpr(CompOp comp, std::unique_ptr<Expression> left, std::unique_ptr<MultiValueExpression> right):comp_(comp),left_(std::move(left)),right_(std::move(right)){};
+  virtual ~MultiValueComparisonExpr();
+
+  ExprType type() const override { return ExprType::MULTICOMPARISON; }
+
+  RC get_value(const Tuple &tuple, Value &value) const override;
+
+  AttrType value_type() const override { return BOOLEANS; }
+
+  CompOp comp() const { return comp_; }
+
+  std::unique_ptr<Expression> &left()  { return left_;  }
+  std::unique_ptr<MultiValueExpression> &right() { return right_; }
+
+  /**
+   * 尝试在没有tuple的情况下获取当前表达式的值
+   * 在优化的时候，可能会使用到
+   */
+  RC try_get_value(Value &value) const override;
+
+  /**
+   * compare the two tuple cells
+   * @param value the result of comparison
+   */
+  RC compare_value(const Value &left, std::vector<Value>& value_list, bool &value,int num) const;
+
+private:
+  CompOp comp_;
+  std::unique_ptr<Expression> left_;
+  std::unique_ptr<MultiValueExpression> right_;
+};
+
 /**
  * @brief 联结表达式
  * @ingroup Expression
@@ -300,3 +352,4 @@ private:
   std::unique_ptr<Expression> left_;
   std::unique_ptr<Expression> right_;
 };
+bool IsNotSetOp(CompOp comOp);

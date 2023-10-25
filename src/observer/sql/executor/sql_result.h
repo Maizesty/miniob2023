@@ -64,6 +64,9 @@ public:
   {
     return state_string_;
   }
+  Session * session(){
+    return session_;
+  }
 
   RC open();
   RC close();

@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/rc.h"
+#include "event/sql_event.h"
 #include "sql/parser/parse_defs.h"
 
 class Db;
@@ -84,7 +85,7 @@ public:
   virtual StmtType type() const = 0;
 
 public:
-  static RC create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt);
+  static RC create_stmt(Db *db, ParsedSqlNode &sql_node, Stmt *&stmt,SQLStageEvent *sql_event=nullptr);
 
 private:
 };

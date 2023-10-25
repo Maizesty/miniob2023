@@ -25,8 +25,17 @@ See the Mulan PSL v2 for more details. */
 class AggregationPhysicalOperator : public PhysicalOperator
 {
 public:
-  AggregationPhysicalOperator(std::vector<AggField> agg_fields, std::vector<Field> fields):agg_fields_(agg_fields), fields_(fields)
-  {}
+  AggregationPhysicalOperator(const std::vector<AggField> &agg_fields,const std::vector<Field> &fields)
+  {
+    for(auto agg_field: agg_fields){
+      AggField agg(agg_field);
+      agg_fields_.push_back(agg);
+    }
+    for(auto field: fields){
+      Field f(field);
+      fields_.push_back(f);
+    }
+  }
 
   virtual ~AggregationPhysicalOperator() = default;
 

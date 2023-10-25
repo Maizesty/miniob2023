@@ -46,7 +46,7 @@ RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int at
     return RC::INVALID_ARGUMENT;
   }
 
-  name_ = name;
+  name_ = strdup(name);
   attr_type_ = attr_type;
   attr_len_ = attr_len;
   attr_offset_ = attr_offset;

@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/optimizer/logical_plan_generator.h"
 
+#include "sql/expr/expression.h"
 #include "sql/operator/aggregation_logical_operator.h"
 #include "sql/operator/logical_operator.h"
 #include "sql/operator/calc_logical_operator.h"
@@ -26,8 +27,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/join_logical_operator.h"
 #include "sql/operator/project_logical_operator.h"
 #include "sql/operator/explain_logical_operator.h"
-
 #include "sql/operator/update_logical_operator.h"
+#include "sql/parser/parse_defs.h"
 #include "sql/stmt/stmt.h"
 #include "sql/stmt/calc_stmt.h"
 #include "sql/stmt/select_stmt.h"
@@ -37,6 +38,8 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/delete_stmt.h"
 #include "sql/stmt/explain_stmt.h"
 #include "sql/stmt/update_stmt.h"
+#include "sql/stmt/select_stmtV2.h"
+
 #include <vector>
 
 using namespace std;
@@ -308,6 +311,24 @@ RC LogicalPlanGenerator::create_plan(
   return RC::SUCCESS;
 }
 
+inline Expression* createExpression(const FilterObj & filter_obj){
+  switch (filter_obj.type)
+  {
+  case ATTR:
+    return static_cast<Expression *>(new FieldExpr(filter_obj.field));
+    break;
+  case SINGLE_VALUE:
+    return static_cast<Expression *>(new ValueExpr(filter_obj.value));
+    break;
+  case VALUE_LIST:
+    return static_cast<Expression *>(new MultiValueExpression(filter_obj.value_list));
+    break;
+  default:
+    return nullptr;
+    break;
+  }
+}
+
 
 RC LogicalPlanGenerator::create_plan(
     FilterStmt *filter_stmt, unique_ptr<LogicalOperator> &logical_operator)
@@ -317,17 +338,20 @@ RC LogicalPlanGenerator::create_plan(
   for (const FilterUnit *filter_unit : filter_units) {
     const FilterObj &filter_obj_left = filter_unit->left();
     const FilterObj &filter_obj_right = filter_unit->right();
+    
+    unique_ptr<Expression> left(createExpression(filter_obj_left));
 
-    unique_ptr<Expression> left(filter_obj_left.is_attr
-                                         ? static_cast<Expression *>(new FieldExpr(filter_obj_left.field))
-                                         : static_cast<Expression *>(new ValueExpr(filter_obj_left.value)));
+    
+    if(filter_obj_right.type!= VALUE_LIST){
+      unique_ptr<Expression> right(createExpression(filter_obj_right));
+      ComparisonExpr *cmp_expr = new ComparisonExpr(filter_unit->comp(), std::move(left), std::move(right));
+      cmp_exprs.emplace_back(cmp_expr);
+    }else{
+      unique_ptr<MultiValueExpression> right(new MultiValueExpression(filter_obj_right.value_list));
+      MultiValueComparisonExpr *cmp_expr = new MultiValueComparisonExpr(filter_unit->comp(), std::move(left), std::move((right)));
+      cmp_exprs.emplace_back(cmp_expr);
+    }
 
-    unique_ptr<Expression> right(filter_obj_right.is_attr
-                                          ? static_cast<Expression *>(new FieldExpr(filter_obj_right.field))
-                                          : static_cast<Expression *>(new ValueExpr(filter_obj_right.value)));
-
-    ComparisonExpr *cmp_expr = new ComparisonExpr(filter_unit->comp(), std::move(left), std::move(right));
-    cmp_exprs.emplace_back(cmp_expr);
   }
 
   unique_ptr<PredicateLogicalOperator> predicate_oper;

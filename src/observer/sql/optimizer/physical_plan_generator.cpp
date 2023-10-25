@@ -236,9 +236,9 @@ RC PhysicalPlanGenerator::create_plan(AggregationLogicalOperator &agg_oper, uniq
       return rc;
     }
   }
-
-  AggregationPhysicalOperator *agg_operator = new AggregationPhysicalOperator(agg_oper.agg_fields(),agg_oper.fields());
   const vector<AggField> &agg_fields = agg_oper.agg_fields();
+  AggregationPhysicalOperator *agg_operator = new AggregationPhysicalOperator(agg_oper.agg_fields(),agg_oper.fields());
+
 
 
   if (child_phy_oper) {

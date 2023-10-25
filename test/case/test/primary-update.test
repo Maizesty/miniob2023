@@ -1,43 +1,42 @@
--- echo 1. create table
-create table t_order_by(id int, score float, name char);
-create table t_order_by_2(id int, age int);
+-- echo initialization
+CREATE TABLE Update_table_1(id int, t_name char, col1 int, col2 int);
+CREATE INDEX index_id on Update_table_1(id);
+INSERT INTO Update_table_1 VALUES (1,'N1',1,1);
+INSERT INTO Update_table_1 VALUES (2,'N2',1,1);
+INSERT INTO Update_table_1 VALUES (3,'N3',2,1);
 
--- echo 2. insert records
-insert into t_order_by values(3, 1.0, 'a');
-insert into t_order_by values(1, 2.0, 'b');
-insert into t_order_by values(4, 3.0, 'c');
-insert into t_order_by values(3, 2.0, 'c');
-insert into t_order_by values(3, 4.0, 'c');
-insert into t_order_by values(3, 3.0, 'd');
-insert into t_order_by values(3, 2.0, 'f');
+-- echo 1. update a row
+UPDATE Update_table_1 SET t_name='N01' WHERE id=1;
+-- sort SELECT * FROM Update_table_1;
 
-insert into t_order_by_2 values(1, 10);
-insert into t_order_by_2 values(2, 20);
-insert into t_order_by_2 values(3, 10);
-insert into t_order_by_2 values(3, 20);
-insert into t_order_by_2 values(3, 40);
-insert into t_order_by_2 values(4, 20);
+-- echo 2. update rows
+UPDATE Update_table_1 SET col2=0 WHERE col1=1;
+-- sort SELECT * FROM Update_table_1;
 
--- echo 3. primary order by
--- sort select * from t_order_by order by id;
+-- echo 3. update a index column
+UPDATE Update_table_1 SET id=4 WHERE t_name='N3';
+-- sort SELECT * FROM Update_table_1;
 
--- sort select * from t_order_by order by id asc;
+-- echo 4. update without conditions
+UPDATE Update_table_1 SET col1=0;
+-- sort SELECT * FROM Update_table_1;
 
--- sort select * from t_order_by order by id desc;
+-- echo 5. update with conditions
+UPDATE Update_table_1 SET t_name='N02' WHERE col1=0 AND col2=0;
+-- sort SELECT * FROM Update_table_1;
 
--- sort select * from t_order_by order by score desc;
+-- echo 6. update non-existent table
+UPDATE Update_table_2 SET t_name='N01' WHERE id=1;
 
--- sort select * from t_order_by order by name desc;
+-- echo 7. update non-existent column
+UPDATE Update_table_1 SET t_name_false='N01' WHERE id=1;
 
--- echo 4. order by more than one fields
-select * from t_order_by order by id, score, name;
+-- echo 8. update with invalid condition
+UPDATE Update_table_1 SET t_name='N01' WHERE id_false=1;
 
-select * from t_order_by order by id desc, score asc, name desc;
+-- echo 9. update in vain
+UPDATE Update_table_1 SET t_name='N01' WHERE id=100;
+-- sort SELECT * FROM Update_table_1;
 
--- echo 5. order by associate with where condition
-select * from t_order_by where id=3 and name>='a' order by score desc, name;
-
--- echo 6. multi-table order by
-select * from t_order_by,t_order_by_2 order by t_order_by.id,t_order_by.score,t_order_by.name,t_order_by_2.id,t_order_by_2.age;
-
-select * from t_order_by, t_order_by_2 where t_order_by.id=t_order_by_2.id order by t_order_by.score desc, t_order_by_2.age asc, t_order_by.id asc, t_order_by.name;
+-- echo 10. update with invalid value
+UPDATE Update_table_1 SET col1='N01' WHERE id=1;

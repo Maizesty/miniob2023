@@ -65,6 +65,34 @@ RC OptimizeStage::handle_request(SQLStageEvent *sql_event)
 
   return rc;
 }
+RC OptimizeStage::handle_request(Stmt *stmt,std::unique_ptr<LogicalOperator> &logical_operator, std::unique_ptr<PhysicalOperator> &physical_operator){
+  RC rc = logical_plan_generator_.create(stmt, logical_operator);
+  if (rc != RC::SUCCESS) {
+    if (rc != RC::UNIMPLENMENT) {
+      LOG_WARN("failed to create logical plan. rc=%s", strrc(rc));
+    }
+    return rc;
+  }
+
+  rc = rewrite(logical_operator);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to rewrite plan. rc=%s", strrc(rc));
+    return rc;
+  }
+
+  rc = optimize(logical_operator);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to optimize plan. rc=%s", strrc(rc));
+    return rc;
+  }
+
+  rc = generate_physical_plan(logical_operator, physical_operator);
+  if (rc != RC::SUCCESS) {
+    LOG_WARN("failed to generate physical plan. rc=%s", strrc(rc));
+    return rc;
+  }
+  return rc;
+}
 
 RC OptimizeStage::optimize(unique_ptr<LogicalOperator> &oper)
 {
@@ -109,3 +137,4 @@ RC OptimizeStage::create_logical_plan(SQLStageEvent *sql_event, unique_ptr<Logic
 
   return logical_plan_generator_.create(stmt, logical_operator);
 }
+

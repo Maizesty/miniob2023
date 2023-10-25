@@ -77,9 +77,19 @@ enum CompOp
   NOT_LIKE_WITH,
   IS_TO,
   NOT_IS,
+  IN_THE,
+  NOT_IN,
+  EXISTS_IN,
+  NOT_EXISTS,
   NO_OP
 };
-
+class ParsedSqlNode;
+enum ConditionValueType{
+  SINGLE_VALUE,
+  ATTR,
+  VALUE_LIST,
+  SUBQUERY
+};
 /**
  * @brief 表示一个条件比较
  * @ingroup SQLParser
@@ -90,15 +100,23 @@ enum CompOp
  */
 struct ConditionSqlNode
 {
+
   int             left_is_attr;    ///< TRUE if left-hand side is an attribute
                                    ///< 1时，操作符左边是属性名，0时，是属性值
   Value           left_value;      ///< left-hand side value if left_is_attr = FALSE
   RelAttrSqlNode  left_attr;       ///< left-hand side attribute
+  ConditionValueType left_type;
+  ParsedSqlNode*      left_sub_query;
+  std::vector<Value>  left_value_list;
   CompOp          comp;            ///< comparison operator
   int             right_is_attr;   ///< TRUE if right-hand side is an attribute
                                    ///< 1时，操作符右边是属性名，0时，是属性值
+  ConditionValueType right_type;
+  ParsedSqlNode*      right_sub_query;
+  std::vector<Value>  right_value_list;  
   RelAttrSqlNode  right_attr;      ///< right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value           right_value;     ///< right-hand side value if right_is_attr = FALSE
+
 };
 
 /**
@@ -268,7 +286,6 @@ struct SetVariableSqlNode
   Value       value;
 };
 
-class ParsedSqlNode;
 
 /**
  * @brief 描述一个explain语句
