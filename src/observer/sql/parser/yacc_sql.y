@@ -165,8 +165,10 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
 %type <insert_value_list>   insert_value_list
 %type <condition_list>      where
 %type <condition_list>      condition_list
+%type <condition_list>      on_list
+
 %type <rel_attr_list>       select_attr
-%type <relation_list>       rel_list
+%type <join_list>       rel_list
 %type <rel_attr_list>       attr_list
 %type <expression>          expression
 %type <expression_list>     expression_list
@@ -636,14 +638,15 @@ select_stmt:        /*  select 语句的语法解析树*/
         delete $2;
       }
       if ($5 != nullptr) {
-        $$->selection.relations.swap(*$5);
+        $$->selection.relations.swap($5->relations);
+        $$->selection.conditions.insert($$->selection.conditions.end(),$5->conditions.begin(),$5->conditions.end());
         delete $5;
       }
       $$->selection.relations.push_back($4);
       std::reverse($$->selection.relations.begin(), $$->selection.relations.end());
 
       if ($6 != nullptr) {
-        $$->selection.conditions.swap(*$6);
+        $$->selection.conditions.insert($$->selection.conditions.end(),$6->begin(),$6->end());
         delete $6;
       }
       if($7!= nullptr){
@@ -652,7 +655,7 @@ select_stmt:        /*  select 语句的语法解析树*/
       }
       free($4);
     }
-    |SELECT select_attr FROM ID join_list rel_list where order_stmt
+    /* |SELECT select_attr FROM ID join_list rel_list where order_stmt
     {
       $$ = new ParsedSqlNode(SCF_SELECT);
       $$->selection.hasAgg = false;
@@ -690,7 +693,7 @@ select_stmt:        /*  select 语句的语法解析树*/
       free($4);
 
 
-    }
+    } */
     ;
     join_list:
     /* empty */
@@ -848,11 +851,23 @@ rel_list:
       if ($3 != nullptr) {
         $$ = $3;
       } else {
-        $$ = new std::vector<std::string>;
+        $$ = new JoinSqlNode;
       }
 
-      $$->push_back($2);
+      $$->relations.push_back($2);
       free($2);
+    }
+    | INNER JOIN ID on_list rel_list{
+      if ($5 != nullptr) {
+        $$ = $5;
+      } else {
+        $$ = new JoinSqlNode;
+      }
+      $$->relations.push_back($3);
+      if($4 != nullptr){
+        $$->conditions.insert($$->conditions.end(),$4->begin(),$4->end());
+      }
+      free($3);
     }
     ;
 where:
@@ -860,8 +875,14 @@ where:
     {
       $$ = nullptr;
     }
-    | WHERE condition_list {
-      $$ = $2;  
+    | WHERE condition condition_list {
+      if($3 != nullptr){
+        $$ =$3;
+      }else{
+        $$ = new std::vector<ConditionSqlNode>;
+      }
+      $$->emplace_back(*$2);  
+      delete $2;
     }
     ;
 order_stmt:
@@ -925,7 +946,7 @@ condition_list:
     {
       $$ = nullptr;
     }
-    | condition {
+    /* | condition {
       $$ = new std::vector<ConditionSqlNode>;
       $$->emplace_back(*$1);
       delete $1;
@@ -934,6 +955,28 @@ condition_list:
       $$ = $3;
       $$->emplace_back(*$1);
       delete $1;
+    } */
+    | AND condition  condition_list {
+      if($3!=nullptr)
+        $$ = $3;
+      else
+        $$ = new std::vector<ConditionSqlNode>;
+      $$->emplace_back(*$2);
+      delete $2;
+    }
+    ;
+on_list:
+      /* empty */
+    {
+      $$ = nullptr;
+    }
+    |ON condition condition_list {
+      if($3 != nullptr)
+        $$ = $3;
+      else
+        $$ = new std::vector<ConditionSqlNode>;
+      $$->emplace_back(*$2);
+      delete $2;
     }
     ;
 condition:
