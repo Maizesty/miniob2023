@@ -21,14 +21,15 @@ See the Mulan PSL v2 for more details. */
 #include "utlis/typecast.h"
 #include "storage/table/table.h"
 #include "string"
-UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount)
-    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
+UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount,bool b)
+    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount),has_multi_rows_(b)
 {}
 
 
 RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
 {
   // TODO
+  bool has_multi_row = false;
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
@@ -72,20 +73,14 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
         return rc;
       }
       if(num>1){
-        LOG_WARN("subquery return too mant rows");
-        return RC::INTERNAL;
+        uRel.value=tmp[0];
+        has_multi_row = true;
       }
       else if(num==0){
         uRel.value.set_null();
       }
       else{
-        if(tmp.size()!=1){
-          LOG_WARN("subquery return too many cols");
-          return RC::INTERNAL;
-        }
-        else{
-          uRel.value=tmp[0];
-        }
+        uRel.value=tmp[0];
       }
     }
 
@@ -139,6 +134,6 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
-  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size());
+  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size(),has_multi_row);
   return rc;
 }
