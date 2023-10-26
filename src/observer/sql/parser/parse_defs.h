@@ -179,6 +179,8 @@ struct DeleteSqlNode
 struct UpdateRel{
   std::string                   attribute_name;        ///< 更新的字段，仅支持一个字段
   Value                         value;                 ///< 更新的值，仅支持一个字段
+  int                           isSubquery;            /// isSubquery为0时不是子查询，为1时是子查询
+  ParsedSqlNode*                sub_query;             /// isSubquery为1时才检查
 };
 
 /**
