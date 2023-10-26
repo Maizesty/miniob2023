@@ -55,6 +55,10 @@ RC UpdatePhysicalOperator::next()
     memcpy(bitmap,record.data(),4);
     for(int i = 0; i < field_metas_.size(); i++){
       size_t copy_len = field_metas_[i]->len();
+      if(!field_metas_[i]->isNullable() && values_[i].isNull()){
+          LOG_WARN("can not update not null col with null");
+          return RC::INTERNAL;
+      }
       int index = 3- field_metas_[i]->index()/8, byte = field_metas_[i]->index()%8;
       int isNull = bitmap[index] & (0x01 << byte);
       if(isNull && values_[i].isNull()){

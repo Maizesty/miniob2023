@@ -93,13 +93,13 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
       LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
       return RC::SCHEMA_FIELD_MISSING;
     }
-    if(uRel.value.isNull() && !field_meta->isNullable()){
-      LOG_WARN("can not update not null col with null");
-      return RC::INTERNAL;
-    }
+    // if(uRel.value.isNull() && !field_meta->isNullable()){
+    //   LOG_WARN("can not update not null col with null");
+    //   return RC::INTERNAL;
+    // }
 
     Value      *value = new Value();
-    if(uRel.value.isNull() && field_meta->isNullable()){
+    if(uRel.value.isNull() ){
         value->set_null();
     }else{
       if(field_meta->type() != uRel.value.attr_type()){
