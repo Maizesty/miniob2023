@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include "sql/stmt/filter_stmt.h"
 #include "storage/field/field_meta.h"
+#include "subquery_helper.h"
 
 class Table;
 

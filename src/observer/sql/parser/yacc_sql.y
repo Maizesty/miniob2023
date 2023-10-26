@@ -601,6 +601,30 @@ update_stmt:      /*  update 语句的语法解析树*/
       free($2);
       free($4);
     }
+    |UPDATE ID SET ID EQ LBRACE select_stmt RBRACE update_rel_list where
+    {
+      $$ = new ParsedSqlNode(SCF_UPDATE);
+      $$->update.relation_name = $2;
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $4;
+      r->isSubquery=1;
+      r->sub_query=$7;
+      if($9 != nullptr){
+        $$->update.updateRel_list = *$9;
+      }else{
+        std::vector<UpdateRel>* urel = new std::vector<UpdateRel>;
+        $$->update.updateRel_list = *(urel);
+        delete urel;
+      }
+      $$->update.updateRel_list.emplace_back(*r);
+      delete r;
+      if ($10 != nullptr) {
+        $$->update.conditions.swap(*$10);
+        delete $10;
+      }
+      free($2);
+      free($4);
+    }
     ;
 update_rel_list:
     /* empty */
@@ -620,6 +644,21 @@ update_rel_list:
       delete r;
       free($2);
       free($4);
+    }
+    | COMMA ID EQ LBRACE select_stmt RBRACE update_rel_list
+    {
+      if($7!=nullptr){
+        $$ = $7;
+      }else{
+        $$ = new std::vector<UpdateRel>;
+      }
+      UpdateRel *r = new UpdateRel();
+      r->attribute_name = $2;
+      r->isSubquery=1;
+      r->sub_query=$5;
+      $$->emplace_back(*r);
+      delete r;
+      free($2);
     }
     ;    
 select_stmt:        /*  select 语句的语法解析树*/

@@ -55,6 +55,40 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
   for(int i = 0; i < updateRel_list.size(); i++){
     auto uRel = updateRel_list[i];
     const FieldMeta *field_meta = table->table_meta().field(uRel.attribute_name.c_str());
+
+    //添加subquery判断
+    if(uRel.isSubquery==1){
+      RC rc = RC::SUCCESS;
+      SubqueryHelper subqueryHelper_;
+      Stmt *stmt = nullptr;
+      Value* left_value_list;
+      int num = 0;
+      std::vector<Value> tmp;
+      SQLStageEvent *sql_event;
+      rc = subqueryHelper_.handleSubQuery(db, *uRel.sub_query, tmp, sql_event,&num);
+
+      if(rc!=RC::SUCCESS){
+        LOG_WARN("can not convert right sub query into value list");
+        return rc;
+      }
+      if(num>1){
+        LOG_WARN("subquery return too mant rows");
+        return RC::INTERNAL;
+      }
+      else if(num==0){
+        uRel.value.set_null();
+      }
+      else{
+        if(tmp.size()!=1){
+          LOG_WARN("subquery return too many cols");
+          return RC::INTERNAL;
+        }
+        else{
+          uRel.value=tmp[0];
+        }
+      }
+    }
+
     if (nullptr == field_meta) {
       LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
       return RC::SCHEMA_FIELD_MISSING;

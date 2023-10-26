@@ -17,7 +17,6 @@ See the Mulan PSL v2 for more details. */
 #include <memory>
 
 #include "common/rc.h"
-#include "sql/stmt/update_stmt.h"
 
 class Stmt;
 class CalcStmt;
@@ -28,6 +27,7 @@ class DeleteStmt;
 class ExplainStmt;
 class LogicalOperator;
 class SelectAggStmt;
+class UpdateStmt;
 class SelectStmtV2;
 class LogicalPlanGenerator
 {
