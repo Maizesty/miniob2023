@@ -2934,7 +2934,7 @@ yyreduce:
     {
       (yyval.condition) = new ConditionSqlNode;
       (yyval.condition)->left_is_attr = 0;
-      (yyval.condition)->right_sub_query = (yyvsp[-5].sql_node);
+      (yyval.condition)->left_sub_query = (yyvsp[-5].sql_node);
       (yyval.condition)->left_type = SUBQUERY;
       (yyval.condition)->right_type = SUBQUERY;
       (yyval.condition)->right_is_attr = 0;

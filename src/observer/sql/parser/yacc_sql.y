@@ -1058,7 +1058,7 @@ condition:
     {
       $$ = new ConditionSqlNode;
       $$->left_is_attr = 0;
-      $$->right_sub_query = $2;
+      $$->left_sub_query = $2;
       $$->left_type = SUBQUERY;
       $$->right_type = SUBQUERY;
       $$->right_is_attr = 0;
