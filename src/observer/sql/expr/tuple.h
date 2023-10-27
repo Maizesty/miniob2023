@@ -289,6 +289,11 @@ public:
       this->speces_.push_back(new TupleCellSpec(spec->table_name(),spec->field_name()));
     }
   }
+  ProjectTuple(std::vector<TupleCellSpec *> & tuple_){
+    for(auto spec : speces_){
+      this->speces_.push_back(new TupleCellSpec(spec->table_name(),spec->field_name()));
+    }
+  }
   void set_tuple(Tuple *tuple)
   {
     this->tuple_ = tuple;
@@ -320,6 +325,8 @@ public:
   {
     return tuple_->find_cell(spec, cell);
   }
+
+
 
 #if 0
   RC cell_spec_at(int index, const TupleCellSpec *&spec) const override
@@ -394,6 +401,11 @@ public:
       this->cells_.push_back(value);
     }
   }
+  ValueListTuple(std::vector<Value> value_list){
+    for(auto value :value_list){
+      this->cells_.push_back(value);
+    }
+  }
   void set_cells(const std::vector<Value> &cells)
   {
     cells_ = cells;
@@ -419,6 +431,10 @@ public:
   virtual RC find_cell(const TupleCellSpec &spec, Value &cell) const override
   {
     return RC::INTERNAL;
+  }
+  void pop(int num){
+    for (int i = 0;i<num;i++)
+      cells_.pop_back();
   }
 
 private:

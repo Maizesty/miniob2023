@@ -204,10 +204,9 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQL
       std::vector<Value> tmp;
       rc = subqueryHelper_.handleSubQuery(db, *condition.left_sub_query, tmp, sql_event,&num);
       if(rc!=RC::SUCCESS){
-        LOG_WARN("can not convert left sub query into value list");
-        return rc;
-      }
-      if(IsNotSetOp(condition.comp)){
+        LOG_WARN("has complex subquery");
+
+      }else if(IsNotSetOp(condition.comp)){
         if(num>1){
           LOG_WARN("subquery return too mant rows");
           return RC::INTERNAL;
@@ -231,15 +230,12 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQL
       std::vector<Value> tmp;
       rc = subqueryHelper_.handleSubQuery(db, *condition.right_sub_query, tmp, sql_event,&num);
       if(rc!=RC::SUCCESS){
-        LOG_WARN("can not convert right sub query into value list");
-        return rc;
-      }
-      if(IsNotSetOp(condition.comp)){
+        LOG_WARN("has complex subquery");
+        }else if(IsNotSetOp(condition.comp)){
         if(num>1){
           LOG_WARN("subquery return too mant rows");
           return RC::INTERNAL;
         }
-
         condition.right_type = SINGLE_VALUE;
         if(num == 0)
           condition.right_value.set_null();
@@ -252,6 +248,9 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQL
       }
 
     }
+    
+
+    
     conditions.push_back(condition);
   }
   // create filter statement in `where` statement
