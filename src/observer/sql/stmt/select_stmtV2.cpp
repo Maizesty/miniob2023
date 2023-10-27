@@ -205,7 +205,7 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQL
       rc = subqueryHelper_.handleSubQuery(db, *condition.left_sub_query, tmp, sql_event,&num);
       if(rc!=RC::SUCCESS){
         LOG_WARN("has complex subquery");
-
+        return rc;
       }else if(IsNotSetOp(condition.comp)){
         if(num>1){
           LOG_WARN("subquery return too mant rows");
@@ -231,6 +231,8 @@ RC SelectStmtV2::create(Db *db, const SelectSqlNode &select_sql, Stmt *&stmt,SQL
       rc = subqueryHelper_.handleSubQuery(db, *condition.right_sub_query, tmp, sql_event,&num);
       if(rc!=RC::SUCCESS){
         LOG_WARN("has complex subquery");
+        return rc;
+
         }else if(IsNotSetOp(condition.comp)){
         if(num>1){
           LOG_WARN("subquery return too mant rows");
