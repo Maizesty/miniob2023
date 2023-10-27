@@ -15,8 +15,10 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include "common/log/log.h"
+#include "sql/expr/tuple.h"
 #include "sql/operator/physical_operator.h"
 #include "storage/field/order_field.h"
+#include <cstddef>
 
 
 class SortCompare{
@@ -42,9 +44,9 @@ class SortCompare{
         continue;
       }
       if(order_fields_[i].order() == ASC_TYPE){
-        return cmp_result > 0;
-      }else{
         return cmp_result < 0;
+      }else{
+        return cmp_result > 0;
       }
     }
     return result;
@@ -89,6 +91,8 @@ private:
   std::vector<Field> project_fields_;
   SortCompare SortCompare_;
   std::vector<ProjectTuple*> tuples_;
+  std::ifstream MergedFileInputStream_;
+  size_t record_num_;
   int count = 0;
 };
 

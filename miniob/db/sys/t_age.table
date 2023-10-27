@@ -1,0 +1,26 @@
+{
+	"fields" : 
+	[
+		{
+			"index" : 0,
+			"isNullable" : false,
+			"len" : 4,
+			"name" : "id",
+			"offset" : 4,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"index" : 1,
+			"isNullable" : false,
+			"len" : 4,
+			"name" : "age",
+			"offset" : 8,
+			"type" : "ints",
+			"visible" : true
+		}
+	],
+	"indexes" : null,
+	"table_id" : 1,
+	"table_name" : "t_age"
+}

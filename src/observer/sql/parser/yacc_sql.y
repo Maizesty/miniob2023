@@ -88,8 +88,6 @@ ArithmeticExpr *create_arithmetic_expression(ArithmeticExpr::Type type,
         AND
         SET
         ON
-        IN
-        EXISTS
         NOT_IN
         NOT_EXISTS
         LOAD

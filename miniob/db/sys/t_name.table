@@ -1,0 +1,26 @@
+{
+	"fields" : 
+	[
+		{
+			"index" : 0,
+			"isNullable" : false,
+			"len" : 4,
+			"name" : "id",
+			"offset" : 4,
+			"type" : "ints",
+			"visible" : true
+		},
+		{
+			"index" : 1,
+			"isNullable" : false,
+			"len" : 4,
+			"name" : "name",
+			"offset" : 8,
+			"type" : "chars",
+			"visible" : true
+		}
+	],
+	"indexes" : null,
+	"table_id" : 0,
+	"table_name" : "t_name"
+}

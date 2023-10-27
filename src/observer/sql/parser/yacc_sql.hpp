@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.8.2.  */
+/* A Bison parser, made by GNU Bison 3.8.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -88,39 +88,41 @@ extern int yydebug;
     AND = 289,                     /* AND  */
     SET = 290,                     /* SET  */
     ON = 291,                      /* ON  */
-    LOAD = 292,                    /* LOAD  */
-    DATA = 293,                    /* DATA  */
-    INFILE = 294,                  /* INFILE  */
-    EXPLAIN = 295,                 /* EXPLAIN  */
-    EQ = 296,                      /* EQ  */
-    LT = 297,                      /* LT  */
-    GT = 298,                      /* GT  */
-    LE = 299,                      /* LE  */
-    GE = 300,                      /* GE  */
-    NE = 301,                      /* NE  */
-    LIKE_COMP = 302,               /* LIKE_COMP  */
-    NOT_COMP = 303,                /* NOT_COMP  */
-    MAX_AGG = 304,                 /* MAX_AGG  */
-    MIN_AGG = 305,                 /* MIN_AGG  */
-    SUM_AGG = 306,                 /* SUM_AGG  */
-    COUNT_AGG = 307,               /* COUNT_AGG  */
-    AVG_AGG = 308,                 /* AVG_AGG  */
-    INNER = 309,                   /* INNER  */
-    JOIN = 310,                    /* JOIN  */
-    UNIQUE = 311,                  /* UNIQUE  */
-    NULL_T = 312,                  /* NULL_T  */
-    IS = 313,                      /* IS  */
-    NULLABLE = 314,                /* NULLABLE  */
-    IN = 315,                      /* IN  */
-    EXISTS = 316,                  /* EXISTS  */
-    ORDER = 317,                   /* ORDER  */
-    BY = 318,                      /* BY  */
-    ASC = 319,                     /* ASC  */
-    NUMBER = 320,                  /* NUMBER  */
-    FLOAT = 321,                   /* FLOAT  */
-    ID = 322,                      /* ID  */
-    SSS = 323,                     /* SSS  */
-    UMINUS = 324                   /* UMINUS  */
+    NOT_IN = 292,                  /* NOT_IN  */
+    NOT_EXISTS = 293,              /* NOT_EXISTS  */
+    LOAD = 294,                    /* LOAD  */
+    DATA = 295,                    /* DATA  */
+    INFILE = 296,                  /* INFILE  */
+    EXPLAIN = 297,                 /* EXPLAIN  */
+    EQ = 298,                      /* EQ  */
+    LT = 299,                      /* LT  */
+    GT = 300,                      /* GT  */
+    LE = 301,                      /* LE  */
+    GE = 302,                      /* GE  */
+    NE = 303,                      /* NE  */
+    LIKE_COMP = 304,               /* LIKE_COMP  */
+    NOT_COMP = 305,                /* NOT_COMP  */
+    MAX_AGG = 306,                 /* MAX_AGG  */
+    MIN_AGG = 307,                 /* MIN_AGG  */
+    SUM_AGG = 308,                 /* SUM_AGG  */
+    COUNT_AGG = 309,               /* COUNT_AGG  */
+    AVG_AGG = 310,                 /* AVG_AGG  */
+    INNER = 311,                   /* INNER  */
+    JOIN = 312,                    /* JOIN  */
+    UNIQUE = 313,                  /* UNIQUE  */
+    NULL_T = 314,                  /* NULL_T  */
+    IS = 315,                      /* IS  */
+    NULLABLE = 316,                /* NULLABLE  */
+    IN = 317,                      /* IN  */
+    EXISTS = 318,                  /* EXISTS  */
+    ORDER = 319,                   /* ORDER  */
+    BY = 320,                      /* BY  */
+    ASC = 321,                     /* ASC  */
+    NUMBER = 322,                  /* NUMBER  */
+    FLOAT = 323,                   /* FLOAT  */
+    ID = 324,                      /* ID  */
+    SSS = 325,                     /* SSS  */
+    UMINUS = 326                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -129,7 +131,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 121 "yacc_sql.y"
+#line 123 "yacc_sql.y"
 
   ParsedSqlNode *                   sql_node;
   ConditionSqlNode *                condition;
@@ -155,7 +157,7 @@ union YYSTYPE
   OrderByNode *                     order_by_node;
   std::vector<OrderByNode>   *       order_by_node_list;
 
-#line 159 "yacc_sql.hpp"
+#line 161 "yacc_sql.hpp"
 
 };
 typedef union YYSTYPE YYSTYPE;
