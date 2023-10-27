@@ -15,8 +15,11 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "sql/expr/tuple.h"
 #include "sql/operator/sort_physical_operator.h"
+#include "sql/parser/value.h"
 #include "storage/record/record.h"
 #include "storage/table/table.h"
+#include <algorithm>
+#include <vector>
 
 RC SortPhysicalOperator::open(Trx *trx)
 {
@@ -41,7 +44,7 @@ RC SortPhysicalOperator::next()
   int backet_num = 0;
   bool isFirst = true;
   std::string filename_base = "sort_file";
-  auto sortLambda = [this](ProjectTuple * p1, ProjectTuple * p2) {
+  auto sortLambda = [this](ValueListTuple * p1, ValueListTuple * p2) {
       return  this->SortCompare_.comparePairs(p1, p2);
   };
   while (RC::SUCCESS == (rc = oper->next())) {
@@ -51,31 +54,28 @@ RC SortPhysicalOperator::next()
       LOG_WARN("failed to get tuple from operator");
       break;
     }
-    ProjectTuple* project_tuple =new ProjectTuple(*static_cast<ProjectTuple *>(tuple));
-    if(isFirst){
-      this->tuple_sample_ = new ProjectTuple(*project_tuple);
+    std::vector<Value> value_list;
+    for(int i =0;i<tuple->cell_num();i++){
+      Value v;
+      tuple->cell_at(i, v);
+      value_list.push_back(v);
     }
-    tuples_.push_back(project_tuple);
+    for(int i =0; i<tuple_cell_specs_.size();i++ ){
+      Value v;
+      tuple->find_cell(tuple_cell_specs_[i], v);
+      value_list.push_back(v);
+    }
+    ValueListTuple* value_tuple = new ValueListTuple(value_list);
+
+    value_list_tuples_.push_back(value_tuple);
     
   }
-  if(tuples_.size() == backet_size){
-    std::sort(tuples_.begin(), tuples_.end(),sortLambda);
-    std::reverse(tuples_.begin(), tuples_.end());
-    std::ofstream outputFile(filename_base + std::to_string(backet_num), std::ios::binary);
-    if (outputFile) {
-        int size = tuples_.size();
-        outputFile.write(reinterpret_cast<const char*>(&size), sizeof(int));
-        for(int i = 0; i < size; i++){
-          outputFile.write(reinterpret_cast<const char*>(tuples_[i]), sizeof(ProjectTuple));
-          //释放内存
-          // delete tuples_[i];
-          
-        }
-        outputFile.close();
-  }
+  if(!isSort){
+    std::sort(value_list_tuples_.begin(),value_list_tuples_.end(),sortLambda);
+    isSort = true;
   }
 
-  if(tuples_.size() == count)
+  if(value_list_tuples_.size() == count)
     return  RC::RECORD_EOF;
   return RC::SUCCESS;
 }
@@ -90,7 +90,8 @@ RC SortPhysicalOperator::close()
 }
 Tuple *SortPhysicalOperator::current_tuple()
 {
-  return tuples_[count++];
+  value_list_tuples_[count]->pop(order_fields_.size());
+  return value_list_tuples_[count++];
 }
 
 

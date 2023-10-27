@@ -401,6 +401,11 @@ public:
       this->cells_.push_back(value);
     }
   }
+  ValueListTuple(std::vector<Value> value_list){
+    for(auto value :value_list){
+      this->cells_.push_back(value);
+    }
+  }
   void set_cells(const std::vector<Value> &cells)
   {
     cells_ = cells;
@@ -426,6 +431,10 @@ public:
   virtual RC find_cell(const TupleCellSpec &spec, Value &cell) const override
   {
     return RC::INTERNAL;
+  }
+  void pop(int num){
+    for (int i = 0;i<num;i++)
+      cells_.pop_back();
   }
 
 private:
