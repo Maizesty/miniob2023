@@ -13,6 +13,7 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/log/log.h"
+#include "sql/expr/tuple.h"
 #include "sql/operator/sort_physical_operator.h"
 #include "storage/record/record.h"
 #include "storage/table/table.h"
@@ -37,8 +38,12 @@ RC SortPhysicalOperator::next()
 {
   RC rc = RC::SUCCESS;
   PhysicalOperator *oper = children_.front().get();
-
-  bool hasOutput = false;
+  int backet_num = 0;
+  bool isFirst = true;
+  std::string filename_base = "sort_file";
+  auto sortLambda = [this](ProjectTuple * p1, ProjectTuple * p2) {
+      return  this->SortCompare_.comparePairs(p1, p2);
+  };
   while (RC::SUCCESS == (rc = oper->next())) {
     Tuple *tuple = oper->current_tuple();
     if (nullptr == tuple) {
@@ -47,15 +52,29 @@ RC SortPhysicalOperator::next()
       break;
     }
     ProjectTuple* project_tuple =new ProjectTuple(*static_cast<ProjectTuple *>(tuple));
-    
+    if(isFirst){
+      this->tuple_sample_ = new ProjectTuple(*project_tuple);
+    }
     tuples_.push_back(project_tuple);
     
   }
-  auto sortLambda = [this](ProjectTuple * p1, ProjectTuple * p2) {
-      return  this->SortCompare_.comparePairs(p1, p2);
-  };
-  std::sort(tuples_.begin(), tuples_.end(),sortLambda);
-  std::reverse(tuples_.begin(), tuples_.end());
+  if(tuples_.size() == backet_size){
+    std::sort(tuples_.begin(), tuples_.end(),sortLambda);
+    std::reverse(tuples_.begin(), tuples_.end());
+    std::ofstream outputFile(filename_base + std::to_string(backet_num), std::ios::binary);
+    if (outputFile) {
+        int size = tuples_.size();
+        outputFile.write(reinterpret_cast<const char*>(&size), sizeof(int));
+        for(int i = 0; i < size; i++){
+          outputFile.write(reinterpret_cast<const char*>(tuples_[i]), sizeof(ProjectTuple));
+          //释放内存
+          // delete tuples_[i];
+          
+        }
+        outputFile.close();
+  }
+  }
+
   if(tuples_.size() == count)
     return  RC::RECORD_EOF;
   return RC::SUCCESS;

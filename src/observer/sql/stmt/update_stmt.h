@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <string>
 #include "sql/stmt/filter_stmt.h"
 #include "storage/field/field_meta.h"
+#include "subquery_helper.h"
 
 class Table;
 
@@ -30,7 +31,7 @@ class UpdateStmt : public Stmt
 {
 public:
   UpdateStmt() = default;
-  UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas , FilterStmt *filter_stmt , Value *values, int value_amount);
+  UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas , FilterStmt *filter_stmt , Value *values, int value_amount,bool b=false);
 
     StmtType type() const override
   {
@@ -61,11 +62,17 @@ public:
   std::vector<const FieldMeta *> field_metas() const{
     return field_metas_;
   }
-
+  void set_has_multi_rows(bool has_multi_rows){
+    this->has_multi_rows_ = has_multi_rows;
+  }
+  bool has_multi_rows(){
+    return has_multi_rows_;
+  }
 private:
   Table *table_ = nullptr;
   Value *values_ = nullptr;
   std::vector<const FieldMeta *> field_metas_;
   FilterStmt *filter_stmt_ = nullptr;
   int value_amount_ = 0;
+  bool has_multi_rows_ = false;
 };

@@ -234,12 +234,12 @@ RC Table::insert_record(Record &record)
   if (rc != RC::SUCCESS) { // 可能出现了键值重复
     RC rc2 = delete_entry_of_indexes(record.data(), record.rid(), false/*error_on_not_exists*/);
     if (rc2 != RC::SUCCESS) {
-      LOG_ERROR("Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
+      LOG_ERROR("Line 237:Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
                 name(), rc2, strrc(rc2));
     }
     rc2 = record_handler_->delete_record(&record.rid());
     if (rc2 != RC::SUCCESS) {
-      LOG_PANIC("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+      LOG_PANIC("Line 242:Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
                 name(), rc2, strrc(rc2));
     }
   }
@@ -554,15 +554,24 @@ RC Table::insert_entry_of_indexes(const char *record, const RID &rid)
       auto field_meta_list = index->field_meta_list();
       std::vector<const char*> keys;
       std::vector<int> lens;
-
+      char * bitmap = (char *)malloc(4);
+      memcpy(bitmap,record,4);
       int offset = 0;
+      bool hasNull = false;
       for(int i =0; i <index->field_meta_list().size();i++){
+        int index = 3- field_meta_list[i].index()/8, byte = field_meta_list[i].index()%8;
+        int isNull = bitmap[index] & (0x01 << byte);
+        if(isNull)
+        {
+          hasNull = true;
+          break;
+        }
         keys.push_back(record+field_meta_list[i].offset());
         lens.push_back(field_meta_list[i].len());
       }
       IndexScanner *scanner = index->create_scanner(keys,lens,true,keys,lens,true);
       RID rid;
-      if(scanner->next_entry(&rid) == RC::SUCCESS){
+      if(!hasNull && scanner->next_entry(&rid) == RC::SUCCESS){
         return RC::INTERNAL;
       }
     }

@@ -90,6 +90,9 @@ private:
   SortCompare SortCompare_;
   std::vector<ProjectTuple*> tuples_;
   int count = 0;
+  std::vector<TupleCellSpec *> speces_;
+  ProjectTuple* tuple_sample_ = nullptr;
+  int backet_size = 2;
 };
 
 

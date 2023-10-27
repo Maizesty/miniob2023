@@ -91,6 +91,14 @@ public:
   std::vector<FieldMeta> field_meta_list(){
     return field_meta_list_;
   }
+  bool hasNullField(){
+    for(auto field : field_meta_list_){
+      if(field.isNullable()){
+        return true;
+      }
+    }
+    return false;
+  }
 
 protected:
   RC init(const IndexMeta &index_meta, const FieldMeta &field_meta);

@@ -392,7 +392,7 @@ RC LogicalPlanGenerator::create_plan(
   if (rc != RC::SUCCESS) {
     return rc;
   }
-  unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table,values,update_stmt->field_metas()));
+  unique_ptr<LogicalOperator> update_oper(new UpdateLogicalOperator(table,values,update_stmt->field_metas(),update_stmt->has_multi_rows()));
   // InsertLogicalOperator *insert_operator = new InsertLogicalOperator(table, values);
   // logical_operator.reset(insert_operator);
   if (predicate_oper) {

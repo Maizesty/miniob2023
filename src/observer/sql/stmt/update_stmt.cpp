@@ -21,14 +21,15 @@ See the Mulan PSL v2 for more details. */
 #include "utlis/typecast.h"
 #include "storage/table/table.h"
 #include "string"
-UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount)
-    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount)
+UpdateStmt::UpdateStmt(Table *table, std::vector<const FieldMeta *> field_metas, FilterStmt *filter_stmt, Value *values, int value_amount,bool b)
+    : table_(table), field_metas_(field_metas), filter_stmt_(filter_stmt), values_(values), value_amount_(value_amount),has_multi_rows_(b)
 {}
 
 
 RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
 {
   // TODO
+  bool has_multi_row = false;
   if (nullptr == db) {
     LOG_WARN("invalid argument. db is null");
     return RC::INVALID_ARGUMENT;
@@ -55,17 +56,45 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
   for(int i = 0; i < updateRel_list.size(); i++){
     auto uRel = updateRel_list[i];
     const FieldMeta *field_meta = table->table_meta().field(uRel.attribute_name.c_str());
+
+    //添加subquery判断
+    if(uRel.isSubquery==1){
+      RC rc = RC::SUCCESS;
+      SubqueryHelper subqueryHelper_;
+      Stmt *stmt = nullptr;
+      Value* left_value_list;
+      int num = 0;
+      std::vector<Value> tmp;
+      SQLStageEvent *sql_event;
+      rc = subqueryHelper_.handleSubQuery(db, *uRel.sub_query, tmp, sql_event,&num);
+
+      if(rc!=RC::SUCCESS){
+        LOG_WARN("can not convert right sub query into value list");
+        return rc;
+      }
+      if(num>1){
+        uRel.value=tmp[0];
+        has_multi_row = true;
+      }
+      else if(num==0){
+        uRel.value.set_null();
+      }
+      else{
+        uRel.value=tmp[0];
+      }
+    }
+
     if (nullptr == field_meta) {
       LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), uRel.attribute_name.c_str());
       return RC::SCHEMA_FIELD_MISSING;
     }
-    if(uRel.value.isNull() && !field_meta->isNullable()){
-      LOG_WARN("can not update not null col with null");
-      return RC::INTERNAL;
-    }
+    // if(uRel.value.isNull() && !field_meta->isNullable()){
+    //   LOG_WARN("can not update not null col with null");
+    //   return RC::INTERNAL;
+    // }
 
     Value      *value = new Value();
-    if(uRel.value.isNull() && field_meta->isNullable()){
+    if(uRel.value.isNull() ){
         value->set_null();
     }else{
       if(field_meta->type() != uRel.value.attr_type()){
@@ -105,6 +134,6 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
     LOG_WARN("failed to create filter statement. rc=%d:%s", rc, strrc(rc));
     return rc;
   }
-  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size());
+  stmt = new UpdateStmt(table, field_metas, filter_stmt, values, updateRel_list.size(),has_multi_row);
   return rc;
 }

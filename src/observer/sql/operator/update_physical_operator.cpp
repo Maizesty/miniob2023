@@ -9,8 +9,8 @@
 
 using namespace std;
 
-UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,vector<const FieldMeta *> &&field_metas)
-    : table_(table), values_(std::move(values)), field_metas_(field_metas)
+UpdatePhysicalOperator::UpdatePhysicalOperator(Table *table, vector<Value> &&values,vector<const FieldMeta *> &&field_metas,bool has_multi_row)
+    : table_(table), values_(std::move(values)), field_metas_(field_metas),has_multi_row_(has_multi_row)
 {}
 RC UpdatePhysicalOperator::open(Trx *trx)
 {
@@ -39,6 +39,10 @@ RC UpdatePhysicalOperator::next()
 
   PhysicalOperator *child = children_[0].get();
   while (RC::SUCCESS == (rc = child->next())) {
+    if(has_multi_row_){
+      LOG_WARN("too many rows for update!");
+      return RC::INTERNAL;
+    }
     Tuple *tuple = child->current_tuple();
     if (nullptr == tuple) {
       LOG_WARN("failed to get current record: %s", strrc(rc));
@@ -55,6 +59,10 @@ RC UpdatePhysicalOperator::next()
     memcpy(bitmap,record.data(),4);
     for(int i = 0; i < field_metas_.size(); i++){
       size_t copy_len = field_metas_[i]->len();
+      if(!field_metas_[i]->isNullable() && values_[i].isNull()){
+          LOG_WARN("can not update not null col with null");
+          return RC::INTERNAL;
+      }
       int index = 3- field_metas_[i]->index()/8, byte = field_metas_[i]->index()%8;
       int isNull = bitmap[index] & (0x01 << byte);
       if(isNull && values_[i].isNull()){
