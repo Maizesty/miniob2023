@@ -82,7 +82,25 @@ RC UpdatePhysicalOperator::next()
           copy_len = data_len + 1;
         }
       } 
-      memcpy(record_data + field_metas_[i]->offset(), values_[i].data(), copy_len);
+      if(field_metas_[i]->type() == TEXTS && values_[i].attr_type() == CHARS){
+        std::string path = field_metas_[i]->path();
+        if(path.empty()){
+          LOG_ERROR("can not open a file name with empty");
+          return RC::INTERNAL;
+        }
+        std::fstream file(path, std::ios::in| std::ios::ate|std::ios::out | std::ios::app);
+        if (!file) {
+            LOG_ERROR("Failed to open file.");
+            return RC::INTERNAL;
+        }
+        std::streampos offset =file.tellp();
+        unsigned long offsetLong = static_cast<unsigned long>(offset);
+        file<<values_[i].get_string()<<endl;
+        file.close();
+        memcpy(record_data + field_metas_[i]->offset(), (const char*)&offsetLong, copy_len);
+      } 
+      if(!(field_metas_[i]->type() == TEXTS && values_[i].attr_type() == CHARS)  )
+        memcpy(record_data + field_metas_[i]->offset(), values_[i].data(), copy_len);
     }
     memcpy(record_data,bitmap,4);
     newRecord.set_data_owner(record_data, record_size);

@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <functional>
+#include <unordered_map>
 #include "storage/field/field_meta.h"
 #include "storage/table/table_meta.h"
 struct RID;

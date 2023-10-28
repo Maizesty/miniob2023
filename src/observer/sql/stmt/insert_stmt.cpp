@@ -75,9 +75,15 @@ RC InsertStmt::create(Db *db, const InsertSqlNode &inserts, Stmt *&stmt)
       if (field_type != value_type) { 
           // TODO try to convert the value type to field type
           if(!(field_type == AttrType::DATES && value_type == AttrType::CHARS)){
-                  LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
-                table_name, field_meta->name(), field_type, value_type);
-              return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+            if(field_type == TEXTS && value_type == AttrType::CHARS){
+              if(values[i].get_string().size()>65535){
+                LOG_WARN("str too long");
+                return RC::INTERNAL;
+              }
+            }else
+            {LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d",
+              table_name, field_meta->name(), field_type, value_type);
+            return RC::SCHEMA_FIELD_TYPE_MISMATCH;}
           }else{
           int32_t date = -1;
           RC rc = string_to_date(values[i].data(), date);

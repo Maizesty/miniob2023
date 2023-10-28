@@ -24,11 +24,11 @@ See the Mulan PSL v2 for more details. */
 #include "utlis/typecast.h"
 
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "booleans", "dates"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "booleans", "dates","texts"};
 
 const char *attr_type_to_string(AttrType type)
 {
-  if (type >= UNDEFINED && type <= DATES) {
+  if (type >= UNDEFINED && type <= TEXTS) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";
@@ -96,6 +96,10 @@ void Value::set_data(char *data, int length)
       num_value_.bool_value_ = *(int *)data != 0;
       length_                = length;
     } break;
+    case TEXTS:{
+      address = *(unsigned long *) data;
+      length_ =length ;
+    }break;
     default: {
       LOG_WARN("unknown data type: %d", attr_type_);
     } break;
@@ -157,6 +161,9 @@ void Value::set_value(const Value &value)
     case DATES: {
       set_date(value.get_int32());
     }
+    case TEXTS:{
+      set_address(value.get_address());
+    }
     case UNDEFINED: {
       ASSERT(false, "got an invalid value type");
     } break;
@@ -169,6 +176,9 @@ const char *Value::data() const
     case CHARS: {
       return str_value_.c_str();
     } break;
+    case TEXTS: {
+      return (const char*) address;
+    }break;
     default: {
       return (const char *)&num_value_;
     } break;
@@ -401,4 +411,11 @@ bool Value::get_boolean() const
 }
 void Value::set_null(){
   attr_type_ = NULLS;
+}
+unsigned long  Value::get_address() const{
+  return address;
+}
+void Value::set_address(unsigned long address){
+  attr_type_ = TEXTS;
+  this->address = address;
 }

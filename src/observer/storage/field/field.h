@@ -28,7 +28,7 @@ public:
   Field(const Table *table, const FieldMeta *field) : table_(table)
   {
     if(field!=nullptr)
-      field_ = new FieldMeta(field->name(),field->type(),field->offset(),field->len(),field->visible(),field->isNullable(),field->index());
+      field_ = new FieldMeta(field->name(),field->type(),field->offset(),field->len(),field->visible(),field->isNullable(),field->index(),field->path());
     else
       field_ = nullptr;
   }

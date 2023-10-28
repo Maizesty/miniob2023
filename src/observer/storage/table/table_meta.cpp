@@ -15,8 +15,12 @@ See the Mulan PSL v2 for more details. */
 #include <algorithm>
 #include <common/lang/string.h>
 
+#include "sql/parser/value.h"
 #include "storage/table/table_meta.h"
 #include "json/json.h"
+#include <json/value.h>
+#include <string>
+#include <utility>
 #include "common/log/log.h"
 #include "storage/trx/trx.h"
 
@@ -26,6 +30,7 @@ static const Json::StaticString FIELD_TABLE_ID("table_id");
 static const Json::StaticString FIELD_TABLE_NAME("table_name");
 static const Json::StaticString FIELD_FIELDS("fields");
 static const Json::StaticString FIELD_INDEXES("indexes");
+static const Json::StaticString FIELD_TEXTS("TEXTS");
 
 TableMeta::TableMeta(const TableMeta &other)
     : table_id_(other.table_id_),
@@ -43,7 +48,7 @@ void TableMeta::swap(TableMeta &other) noexcept
   std::swap(record_size_, other.record_size_);
 }
 
-RC TableMeta::init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[])
+RC TableMeta::init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[],std::unordered_map<std::string, std::string> text_path_map)
 {
   if (common::is_blank(name)) {
     LOG_ERROR("Name cannot be empty");
@@ -54,7 +59,7 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
     LOG_ERROR("Invalid argument. name=%s, field_num=%d, attributes=%p", name, field_num, attributes);
     return RC::INVALID_ARGUMENT;
   }
-
+  text_path_map_ = text_path_map;
   RC rc = RC::SUCCESS;
 
   int                      field_offset  = 4;
@@ -77,14 +82,22 @@ RC TableMeta::init(int32_t table_id, const char *name, int field_num, const Attr
 
   for (int i = 0; i < field_num; i++) {
     const AttrInfoSqlNode &attr_info = attributes[i];
-    rc                               = fields_[i + trx_field_num].init(
+    if(attr_info.type != TEXTS)
+      rc                               = fields_[i + trx_field_num].init(
         attr_info.name.c_str(), attr_info.type, field_offset, attr_info.length, true /*visible*/,attr_info.isNullable,i+trx_field_num);
+    else{
+      std::string text_path = find_text_path(attr_info.name);
+      rc                               = fields_[i + trx_field_num].init(
+        attr_info.name.c_str(), attr_info.type, field_offset, 8, true /*visible*/,attr_info.isNullable,i+trx_field_num,text_path);
+    }
+
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name.c_str());
       return rc;
     }
 
     field_offset += attr_info.length;
+    
   }
 
   record_size_ = field_offset;
@@ -176,16 +189,19 @@ int TableMeta::serialize(std::ostream &ss) const
   Json::Value table_value;
   table_value[FIELD_TABLE_ID]   = table_id_;
   table_value[FIELD_TABLE_NAME] = name_;
-
+  Json::Value texts_paths;
   Json::Value fields_value;
   for (const FieldMeta &field : fields_) {
     Json::Value field_value;
     field.to_json(field_value);
     fields_value.append(std::move(field_value));
+    if(field.type() == TEXTS){
+      texts_paths[field.name()] = find_text_path(field.name());
+    }
   }
 
   table_value[FIELD_FIELDS] = std::move(fields_value);
-
+  table_value[FIELD_TEXTS] = std::move(texts_paths);
   Json::Value indexes_value;
   for (const auto &index : indexes_) {
     Json::Value index_value;
@@ -234,6 +250,7 @@ int TableMeta::deserialize(std::istream &is)
   std::string table_name = table_name_value.asString();
 
   const Json::Value &fields_value = table_value[FIELD_FIELDS];
+  const Json::Value &text_path = table_value[FIELD_TEXTS];
   if (!fields_value.isArray() || fields_value.size() <= 0) {
     LOG_ERROR("Invalid table meta. fields is not array, json value=%s", fields_value.toStyledString().c_str());
     return -1;
@@ -250,6 +267,10 @@ int TableMeta::deserialize(std::istream &is)
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to deserialize table meta. table name =%s", table_name.c_str());
       return -1;
+    }
+    if(field.type() == TEXTS){
+      std::string path = text_path[field.name()].asString();
+      this->text_path_map_.insert(std::pair<std::string, std::string>(std::string(field.name()),path));
     }
   }
 

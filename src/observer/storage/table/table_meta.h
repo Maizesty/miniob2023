@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common/rc.h"
@@ -36,7 +37,7 @@ public:
 
   void swap(TableMeta &other) noexcept;
 
-  RC init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[]);
+  RC init(int32_t table_id, const char *name, int field_num, const AttrInfoSqlNode attributes[],std::unordered_map<std::string, std::string> text_path_map);
 
   RC add_index(const IndexMeta &index);
 
@@ -60,7 +61,15 @@ public:
   const IndexMeta *find_index_by_field(const char *field) const;
   const IndexMeta *index(int i) const;
   int index_num() const;
-
+  void set_text_path_map(std::unordered_map<std::string, std::string> text_path_map){
+    text_path_map_ = text_path_map;
+  }
+  std::string find_text_path(std::string atrr_name) const{
+    auto iter = text_path_map_.find(atrr_name);
+    if(iter != text_path_map_.end())
+      return iter->second;
+    return "";
+  }
   int record_size() const;
 
 public:
@@ -75,6 +84,6 @@ protected:
   std::string name_;
   std::vector<FieldMeta> fields_;  // 包含sys_fields
   std::vector<IndexMeta> indexes_;
-
+  std::unordered_map<std::string, std::string> text_path_map_;
   int record_size_ = 0;
 };

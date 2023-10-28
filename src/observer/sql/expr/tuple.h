@@ -211,8 +211,27 @@ public:
       return RC::SUCCESS;
     }
     // cell.set_isNull(false);
-    cell.set_type(field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    if(field_meta->type() != TEXTS){
+      cell.set_type(field_meta->type());
+      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+    }else{
+      cell.set_type(field_meta->type());
+      cell.set_data(this->record_->data() + field_meta->offset(), field_meta->len());
+      unsigned long offset = cell.get_address();
+      std::ifstream readFile(field_meta->path());
+      if (!readFile.is_open()) {
+        LOG_ERROR("Failed to open file for reading!" );
+        return RC::INTERNAL;
+        }
+
+      // 定位到指定行
+      std::string out;
+      readFile.seekg(offset);
+      std::getline(readFile, out);
+      cell.set_type(CHARS);
+      cell.set_string(out.c_str(),out.size());
+    }
+
     return RC::SUCCESS;
   }
 

@@ -16,8 +16,11 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include <unordered_map>
+#include <utility>
 
 #include "common/defs.h"
+#include "sql/parser/value.h"
 #include "storage/record/record.h"
 #include "storage/table/table.h"
 #include "storage/table/table_meta.h"
@@ -90,13 +93,29 @@ RC Table::create(int32_t table_id,
   }
 
   close(fd);
-
+  std::unordered_map<std::string, std::string> text_field_map;
+  for(int i =0; i< attribute_count;i++){
+    if(attributes[i].type == TEXTS){
+      std::string attr_text_file = table_text_file(base_dir,name, attributes[i].name.c_str());
+      int fd = ::open(attr_text_file.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+        if (fd < 0) {
+          if (EEXIST == errno) {
+          LOG_ERROR("Failed to create table file, it has been created. %s, EEXIST, %s", path, strerror(errno));
+          return RC::SCHEMA_TABLE_EXIST;
+        }
+        LOG_ERROR("Create table file failed. filename=%s, errmsg=%d:%s", path, errno, strerror(errno));
+        return RC::IOERR_OPEN;
+      } 
+      text_field_map.insert(std::pair<std::string, std::string>(attributes[i].name,attr_text_file));
+      }    
+    }
+    
   // 创建文件
-  if ((rc = table_meta_.init(table_id, name, attribute_count, attributes)) != RC::SUCCESS) {
+  if ((rc = table_meta_.init(table_id, name, attribute_count, attributes,text_field_map)) != RC::SUCCESS) {
     LOG_ERROR("Failed to init table meta. name:%s, ret:%d", name, rc);
     return rc;  // delete table file
   }
-
+  // table_meta_.set_text_path_map(text_field_map);
   std::fstream fs;
   fs.open(path, std::ios_base::out | std::ios_base::binary);
   if (!fs.is_open()) {
@@ -331,10 +350,14 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
       continue;
     }
     if (field->type() != value.attr_type()) {
+      if(!(field->type() == TEXTS && value.attr_type()==CHARS)){
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
                 table_meta_.name(), field->name(), field->type(), value.attr_type());
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+
     }
+    
   }
 
   // 复制所有字段的值
@@ -345,6 +368,23 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
     size_t copy_len = field->len();
+    if(field->type() == TEXTS && value.attr_type() == CHARS){
+        string path = this->table_meta().find_text_path(field->name());
+        if(path.empty()){
+          LOG_ERROR("can not open a file name with empty");
+          return RC::INTERNAL;
+        }
+        std::fstream file(path, std::ios::in| std::ios::ate|std::ios::out | std::ios::app);
+        if (!file) {
+            LOG_ERROR("Failed to open file.");
+            return RC::INTERNAL;
+        }
+        std::streampos offset =file.tellp();
+        unsigned long offsetLong = static_cast<unsigned long>(offset);
+        file<<value.get_string()<<endl;
+        file.close();
+        memcpy(record_data + field->offset(), (const char*)&offsetLong, copy_len);
+    }
     if(!value.isNull()){
       if (field->type() == CHARS) {
         const size_t data_len = value.length();
@@ -352,6 +392,7 @@ RC Table::make_record(int value_num, const Value *values, Record &record)
           copy_len = data_len + 1;
         }
       }
+    if(!(field->type() == TEXTS && value.attr_type() == CHARS)  )
       memcpy(record_data + field->offset(), value.data(), copy_len);
     }else{
       const char* d = "nil";

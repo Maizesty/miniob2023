@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/update_stmt.h"
 #include "common/lang/string.h"
 #include "common/log/log.h"
+#include "sql/operator/physical_operator.h"
 #include "sql/parser/value.h"
 #include "storage/db/db.h"
 #include "storage/field/field_meta.h"
@@ -112,11 +113,18 @@ RC UpdateStmt::create(Db *db, const UpdateSqlNode &update, Stmt *&stmt)
           value->set_string(std::to_string(uRel.value.get_int()).c_str());
         }else if ((field_meta->type() == AttrType::CHARS && uRel.value.attr_type() == AttrType::FLOATS)){
           value->set_string(std::to_string(uRel.value.get_float()).c_str());
+        }else if(field_meta->type() == AttrType::TEXTS && uRel.value.attr_type() == AttrType::CHARS){
+          if(uRel.value.get_string().size()>65535){
+            LOG_WARN("str too long!");
+            return RC::INTERNAL;
+          }
+          value->set_value(uRel.value);
         }else
-        {
+        { if(!(field_meta->type()==TEXTS && uRel.value.attr_type() == CHARS))
           return RC::INVALID_ARGUMENT;
         }
-      }else
+      }
+      else
         value->set_value(uRel.value);
     }
       values[i] = *value;

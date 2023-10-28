@@ -29,6 +29,7 @@ enum AttrType
   FLOATS,         ///< 浮点数类型(4字节)
   BOOLEANS,       ///< boolean类型，当前不是由parser解析出来的，是程序内部使用的
   DATES,
+  TEXTS,
   NULLS
 };
 
@@ -73,6 +74,7 @@ public:
   void set_string(const char *s, int len = 0);
   void set_value(const Value &value);
   void set_date(int32_t date);
+  void set_address(unsigned long);
   std::string to_string() const;
   void set_null();
   int compare(const Value &other) const;
@@ -101,7 +103,7 @@ public:
   std::string get_string() const;
   bool get_boolean() const;
   int32_t get_int32() const;
-
+  unsigned long get_address() const;
 private:
   AttrType attr_type_ = UNDEFINED;
   int length_ = 0;
@@ -111,6 +113,8 @@ private:
     float float_value_;
     bool bool_value_;
     int32_t date_value_;
+    
   } num_value_;
+  unsigned long address;
   std::string str_value_;
 };
